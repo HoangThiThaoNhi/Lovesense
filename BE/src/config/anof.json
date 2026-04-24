@@ -1,0 +1,208 @@
+{
+  "version": "1.2.0",
+  "project": "LoveSense AI DNA",
+  "criteria_framework": [
+    {
+      "group_id": "G1_PERSONALITY",
+      "group_name": "Tâm lý & Tính cách hệ thống",
+      "description": "Xác định bản sắc cá nhân và cách tương tác xã hội",
+      "criteria": [
+        {
+          "id": "extroversion",
+          "name": "Hướng ngoại/Hướng nội",
+          "type": "scale",
+          "weight": 0.8
+        },
+        {
+          "id": "emotional_stability",
+          "name": "Sự ổn định cảm xúc",
+          "type": "scale",
+          "weight": 0.7
+        },
+        {
+          "id": "openness_to_exp",
+          "name": "Độ mở với trải nghiệm mới",
+          "type": "scale",
+          "weight": 0.6
+        },
+        {
+          "id": "attachment_style",
+          "name": "Kiểu gắn kết (Lo âu/Né tránh/An toàn)",
+          "type": "enum",
+          "weight": 0.9
+        }
+      ]
+    },
+    {
+      "group_id": "G2_CORE_VALUES",
+      "group_name": "Giá trị cốt lõi & Thế giới quan",
+      "description": "Các yếu tố không thể thương lượng (Dealbreakers)",
+      "criteria": [
+        {
+          "id": "family_goal",
+          "name": "Định hướng gia đình/Con cái",
+          "type": "enum",
+          "is_critical": true,
+          "weight": 1.0
+        },
+        {
+          "id": "religion_influence",
+          "name": "Tầm quan trọng của tôn giáo/Tín ngưỡng",
+          "type": "scale",
+          "weight": 0.8
+        },
+        {
+          "id": "political_view",
+          "name": "Quan điểm xã hội/Chính trị",
+          "type": "scale",
+          "weight": 0.5
+        },
+        {
+          "id": "loyalty_definition",
+          "name": "Định nghĩa về sự chung thủy",
+          "type": "enum",
+          "is_critical": true,
+          "weight": 1.0
+        }
+      ]
+    },
+    {
+      "group_id": "G3_FINANCIAL_LIFESTYLE",
+      "group_name": "Tài chính & Quản lý nguồn lực",
+      "description": "Cách cá nhân nhìn nhận về tiền bạc và sự nghiệp",
+      "criteria": [
+        {
+          "id": "spending_habit",
+          "name": "Thói quen chi tiêu (Tiết kiệm/Hưởng thụ)",
+          "type": "scale",
+          "weight": 0.7
+        },
+        {
+          "id": "career_ambition",
+          "name": "Tham vọng sự nghiệp vs Đời sống",
+          "type": "scale",
+          "weight": 0.6
+        },
+        {
+          "id": "financial_transparency",
+          "name": "Mức độ công khai tài chính trong tình yêu",
+          "type": "enum",
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "group_id": "G4_INTIMACY_ROMANCE",
+      "group_name": "Sự thân mật & Ngôn ngữ tình yêu",
+      "description": "Cách biểu hiện tình cảm và nhu cầu kết nối vật lý",
+      "criteria": [
+        {
+          "id": "love_language",
+          "name": "Ngôn ngữ tình yêu ưu tiên",
+          "type": "multiple_choice",
+          "weight": 0.8
+        },
+        {
+          "id": "physical_touch_need",
+          "name": "Nhu cầu gần gũi vật lý",
+          "type": "scale",
+          "weight": 0.9
+        },
+        {
+          "id": "romance_style",
+          "name": "Phong cách lãng mạn (Sến súa/Thực tế)",
+          "type": "scale",
+          "weight": 0.5
+        }
+      ]
+    },
+    {
+      "group_id": "G5_LIFESTYLE_HABITS",
+      "group_name": "Thói quen sinh hoạt & Sức khỏe",
+      "description": "Các yếu tố ảnh hưởng đến việc chung sống hàng ngày",
+      "criteria": [
+        {
+          "id": "circadian_rhythm",
+          "name": "Nhịp sinh học (Cú đêm/Sáng sớm)",
+          "type": "enum",
+          "weight": 0.4
+        },
+        {
+          "id": "cleanliness_level",
+          "name": "Mức độ ngăn nắp/Sạch sẽ",
+          "type": "scale",
+          "weight": 0.6
+        },
+        {
+          "id": "diet_fitness",
+          "name": "Ý thức sức khỏe & Chế độ ăn uống",
+          "type": "scale",
+          "weight": 0.5
+        },
+        {
+          "id": "vice_habits",
+          "name": "Thói quen (Hút thuốc/Uống rượu)",
+          "type": "enum",
+          "is_critical": true,
+          "weight": 0.8
+        }
+      ]
+    },
+    {
+      "group_id": "G6_CONFLICT_RESOLUTION",
+      "group_name": "Giải quyết xung đột & Giao tiếp",
+      "description": "Cách đối mặt với vấn đề khi có mâu thuẫn",
+      "criteria": [
+        {
+          "id": "communication_style",
+          "name": "Trực diện vs Gián tiếp",
+          "type": "scale",
+          "weight": 0.8
+        },
+        {
+          "id": "conflict_approach",
+          "name": "Tìm giải pháp vs Xả cảm xúc",
+          "type": "enum",
+          "weight": 0.7
+        },
+        {
+          "id": "personal_space",
+          "name": "Nhu cầu không gian riêng tư",
+          "type": "scale",
+          "weight": 0.7
+        }
+      ]
+    },
+    {
+      "group_id": "G7_INTERESTS_GROWTH",
+      "group_name": "Sở thích & Phát triển bản thân",
+      "description": "Hoạt động giải trí và định hướng tương lai",
+      "criteria": [
+        {
+          "id": "intellectual_curiosity",
+          "name": "Nhu cầu học hỏi/Trao đổi tri thức",
+          "type": "scale",
+          "weight": 0.6
+        },
+        {
+          "id": "travel_style",
+          "name": "Gu du lịch (Nghỉ dưỡng/Khám phá)",
+          "type": "scale",
+          "weight": 0.4
+        },
+        {
+          "id": "social_circle",
+          "name": "Độ rộng của vòng bạn bè",
+          "type": "scale",
+          "weight": 0.5
+        }
+      ]
+    }
+  ],
+  "scoring_logic": {
+    "matching_algorithm": "Euclidean_Distance_Weighted",
+    "critical_penalty": -1.0,
+    "bonus_on_shared_vices": 0.2
+  }
+}
+
