@@ -132,6 +132,7 @@ class SwipeNotifier extends StateNotifier<SwipeState> {
       }
 
       final queryParams = state.filter.toQueryParams();
+      queryParams['useInterests'] = 'true';
       if (currentLat != null && currentLng != null) {
         queryParams['lat'] = currentLat.toString();
         queryParams['lng'] = currentLng.toString();

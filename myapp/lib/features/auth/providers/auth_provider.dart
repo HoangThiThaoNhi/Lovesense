@@ -52,6 +52,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'password': password,
       });
 
+      print('DEBUG: Login Response: $response');
+
       if (response.containsKey('token')) {
         final token = response['token'];
         
@@ -59,17 +61,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
         User user;
         try {
           final profileResponse = await ApiService.get('/profile/me', token: token);
+          print('DEBUG: Profile Response: $profileResponse');
+          
           if (profileResponse.containsKey('id') || profileResponse.containsKey('user_id')) {
             user = User.fromJson(profileResponse);
           } else {
-            throw 'Invalid profile data';
+            throw 'Invalid profile data structure';
           }
         } catch (e) {
           // Profile might not exist (404), which is fine for new users
-          print('DEBUG: Profile not found or error during login, using empty user: $e');
+          print('DEBUG: Profile not found or error during login, using data from login response: $e');
+          
+          final userData = response['user'] ?? {};
           user = User(
-            id: response['user']['id'].toString(),
-            name: '',
+            id: (userData['id'] ?? 'unknown').toString(),
+            name: (userData['full_name'] ?? '').toString(),
             age: 0,
             bio: '',
             job: '',
@@ -89,9 +95,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           clearError: true,
         );
       } else {
-        state = state.copyWith(isLoading: false, error: response['error'] ?? 'Đăng nhập thất bại');
+        print('DEBUG: Login failed - No token in response');
+        state = state.copyWith(isLoading: false, error: response['error'] ?? 'Đăng nhập thất bại: Thiếu token');
       }
     } catch (e) {
+      print('DEBUG ERROR in AuthNotifier.login: $e');
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }

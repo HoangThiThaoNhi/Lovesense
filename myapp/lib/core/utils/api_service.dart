@@ -132,11 +132,23 @@ class ApiService {
   }
 
   static dynamic _processResponse(http.Response response) {
-    final body = jsonDecode(response.body);
+    print('DEBUG: Response from ${response.request?.url} - Status: ${response.statusCode}');
+    dynamic body;
+    try {
+      body = jsonDecode(response.body);
+      print('DEBUG: Response Body Length: ${response.body.length}');
+    } catch (e) {
+      print('DEBUG ERROR: Non-JSON response body: ${response.body}');
+      throw 'Server trả về định dạng không hợp lệ. Vui lòng kiểm tra Backend.';
+    }
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     }
-    throw body['error'] ?? body['message'] ?? 'Đã có lỗi xảy ra';
+    
+    final String errorMessage = body is Map ? (body['error'] ?? body['message'] ?? 'Đã có lỗi xảy ra') : 'Lỗi hệ thống (${response.statusCode})';
+    print('DEBUG ERROR: API Error: $errorMessage');
+    throw errorMessage;
   }
 
   static String formatImageUrl(String? url) {

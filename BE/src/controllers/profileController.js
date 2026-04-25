@@ -57,7 +57,8 @@ exports.getMyProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
     try {
-        const profileData = { ...req.body, user_id: req.user.id };
+        const userId = req.user.id;
+        const profileData = { ...req.body, user_id: userId };
         
         // Map Vietnamese gender from App to Backend ENUM
         if (profileData.gender) {
@@ -67,7 +68,26 @@ exports.updateProfile = async (req, res) => {
             else profileData.gender = 'other';
         }
 
+        // 1. Update Profile table
         const id = await Profile.upsert(profileData);
+
+        // 2. Sync shared fields to User table
+        const userUpdates = {};
+        if (profileData.display_name) userUpdates.full_name = profileData.display_name;
+        if (profileData.bio) userUpdates.bio = profileData.bio;
+        if (profileData.gender) userUpdates.gender = profileData.gender;
+        
+        if (profileData.looking_for) {
+            // If it's an array, join it into a string
+            userUpdates.target_gender = Array.isArray(profileData.looking_for) 
+                ? profileData.looking_for.join(',') 
+                : profileData.looking_for;
+        }
+        
+        if (Object.keys(userUpdates).length > 0) {
+            await User.update(userUpdates, { where: { id: userId } });
+        }
+
         res.json({ message: 'Profile updated successfully', id });
     } catch (error) {
         res.status(500).json({ error: error.message });

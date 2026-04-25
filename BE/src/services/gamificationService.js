@@ -13,7 +13,8 @@ class GamificationService {
                 return null;
             }
 
-            profile.points = (profile.points || 0) + points;
+            const numericPoints = parseInt(points) || 0;
+            profile.points = (profile.points || 0) + numericPoints;
             await profile.save({ transaction: t });
 
             // 2. Record history only if points are awarded
@@ -126,10 +127,15 @@ class GamificationService {
     static async getStatus(userId) {
         try {
             console.log(`  -> Step 1: Fetching profile for ${userId}`);
-            const profile = await Profile.findOne({
+            let profile = await Profile.findOne({
                 where: { user_id: userId },
                 attributes: ['points', 'current_title']
-            }) || { points: 0, current_title: 'Thành viên mới' };
+            });
+
+            // If profile doesn't exist (new user who hasn't finished setup), use defaults
+            if (!profile) {
+                profile = { points: 0, current_title: 'Thành viên mới' };
+            }
 
             console.log(`  -> Step 2: Fetching badges (with Auto-Sync)`);
             const allBadges = await Badge.findAll({
@@ -142,9 +148,13 @@ class GamificationService {
 
             // AUTO-SYNC: If user has points but missing badges, award them now
             const userPoints = profile.points || 0;
-            const missingBadges = allBadges.filter(b => 
+            
+            // Fix: Only sync badges if points_required > 0, or if it's the very first badge (0 points)
+            // This prevents "filling all levels" if multiple badges are misconfigured with 0 points.
+            const missingBadges = allBadges.filter((b, index) => 
                 b.points_required <= userPoints && 
-                !userBadges.some(ub => ub.badge_id === b.id)
+                !userBadges.some(ub => ub.badge_id === b.id) &&
+                (b.points_required > 0 || index === 0)
             );
 
             if (missingBadges.length > 0) {
@@ -161,12 +171,7 @@ class GamificationService {
                     
                     // Award vouchers for this synced badge
                     const vouchers = await Voucher.findAll({
-                        where: { 
-                            badge_id: badge.id, 
-                            is_active: true,
-                            start_date: { [Op.lte]: now },
-                            end_date: { [Op.gte]: now }
-                        }
+                        where: { badge_id: badge.id, is_active: true }
                     });
 
                     for (const voucher of vouchers) {
@@ -174,14 +179,23 @@ class GamificationService {
                             where: { user_id: userId, voucher_id: voucher.id },
                             defaults: { user_id: userId, voucher_id: voucher.id }
                         });
-                        
-                        await Notification.create({
-                            user_id: userId,
-                            type: 'gift',
-                            title: `Bạn nhận được quà tặng: ${voucher.name}! 🎁`,
-                            content: `Chúc mừng! Bạn đã nhận được một voucher quà tặng nhờ đạt huy hiệu ${badge.name}. Kiểm tra Kho Voucher ngay!`,
-                            metadata: { voucher_id: voucher.id }
-                        });
+                    }
+                }
+
+                // Update current_title if new badges were synced
+                const eligibleBadgeIds = allBadges
+                    .filter(b => b.points_required <= userPoints)
+                    .map(b => b.id);
+
+                if (eligibleBadgeIds.length > 0) {
+                    const topBadge = await Badge.findOne({
+                        where: { id: { [Op.in]: eligibleBadgeIds } },
+                        order: [['points_required', 'DESC']]
+                    });
+
+                    if (topBadge) {
+                        if (profile.save) profile.current_title = topBadge.name;
+                        await Profile.update({ current_title: topBadge.name }, { where: { user_id: userId } });
                     }
                 }
                 

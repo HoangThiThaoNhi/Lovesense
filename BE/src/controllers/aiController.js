@@ -35,6 +35,7 @@ exports.interview = async (req, res) => {
             cleanHistory.pop(); // Remove the last user message if it's already there
         }
 
+        const prompt = lastResponse || "Chào bạn, hãy bắt đầu buổi phỏng vấn tìm hiểu về gu người yêu của tôi nhé!";
         const aiResponse = await aiService.generateResponse(prompt, cleanHistory);
         
         // 2. Try to parse profile data from current history to see if we can "complete" it

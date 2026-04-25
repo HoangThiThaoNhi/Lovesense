@@ -99,18 +99,26 @@ exports.saveSurvey = async (req, res) => {
             console.error('[Survey Points Error]:', pointsError);
         }
 
-        // NEW: Generate AI Ideal Partner Profile
+        // NEW: Generate AI Ideal Partner Profile & DNA Scores
         let aiAnalysis = null;
         try {
+            // 1. Generate Qualitative Analysis (AI)
             aiAnalysis = await AIService.generateIdealPartnerProfile(answers);
             console.log(`[Survey] AI Analysis Result for user ${userId}:`, JSON.stringify(aiAnalysis, null, 2));
+            
             if (aiAnalysis) {
                 await Profile.update({
                     ai_ideal_description: aiAnalysis.description,
                     ai_match_keywords: aiAnalysis.target_tags || []
                 }, { where: { user_id: userId } });
-                console.log(`[Survey] AI Analysis saved for user ${userId}`);
+                console.log(`[Survey] AI Analysis saved to Profile for user ${userId}`);
             }
+
+            // 2. Generate Quantitative DNA Scores (Algorithmic + AI)
+            const dnaScores = AIService.calculateDNAProfile(answers, aiAnalysis?.preference_vector);
+            await User.update(dnaScores, { where: { id: userId } });
+            console.log(`[Survey] DNA Scores saved to User table for user ${userId}`);
+
         } catch (aiError) {
             console.error('[AI Survey Analysis Error]:', aiError);
         }

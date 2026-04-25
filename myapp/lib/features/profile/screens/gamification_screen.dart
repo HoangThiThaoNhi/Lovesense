@@ -526,7 +526,13 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen> {
     int prevPoints = prevBadge?.pointsRequired ?? 0;
     int nextPoints = nextBadge?.pointsRequired ?? (prevPoints + 1000); // Fallback if maxed
     
-    double progress = (status.points - prevPoints) / (nextPoints - prevPoints);
+    double progress = 0.0;
+    if (nextPoints > prevPoints) {
+      progress = (status.points - prevPoints) / (nextPoints - prevPoints);
+    } else {
+      // If next milestone is same as prev (misconfiguration), show full if user has enough points
+      progress = status.points >= nextPoints ? 1.0 : 0.0;
+    }
     progress = progress.clamp(0.0, 1.0);
 
     return Column(

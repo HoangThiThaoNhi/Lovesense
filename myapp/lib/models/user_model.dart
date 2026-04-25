@@ -23,6 +23,15 @@ class User {
   final String? matchReason;
   final double? lat;
   final double? lng;
+  
+  // DNA Scores
+  final int ambitionScore;
+  final int personalityScore;
+  final int careerScore;
+  final int coreValuesScore;
+  final int interestsScore;
+  final int lifestyleScore;
+  final int familyOrientationScore;
 
   User({
     required this.id,
@@ -49,6 +58,13 @@ class User {
     this.matchReason,
     this.lat,
     this.lng,
+    this.ambitionScore = 0,
+    this.personalityScore = 0,
+    this.careerScore = 0,
+    this.coreValuesScore = 0,
+    this.interestsScore = 0,
+    this.lifestyleScore = 0,
+    this.familyOrientationScore = 0,
   });
 
   User copyWith({
@@ -76,6 +92,13 @@ class User {
     String? matchReason,
     double? lat,
     double? lng,
+    int? ambitionScore,
+    int? personalityScore,
+    int? careerScore,
+    int? coreValuesScore,
+    int? interestsScore,
+    int? lifestyleScore,
+    int? familyOrientationScore,
   }) {
     return User(
       id: id ?? this.id,
@@ -102,19 +125,35 @@ class User {
       matchReason: matchReason ?? this.matchReason,
       lat: lat ?? this.lat,
       lng: lng ?? this.lng,
+      ambitionScore: ambitionScore ?? this.ambitionScore,
+      personalityScore: personalityScore ?? this.personalityScore,
+      careerScore: careerScore ?? this.careerScore,
+      coreValuesScore: coreValuesScore ?? this.coreValuesScore,
+      interestsScore: interestsScore ?? this.interestsScore,
+      lifestyleScore: lifestyleScore ?? this.lifestyleScore,
+      familyOrientationScore: familyOrientationScore ?? this.familyOrientationScore,
     );
   }
 
   factory User.fromJson(Map<String, dynamic> json) {
     try {
-      // Handle interests with safety
+      // Handle interests with safety & cleaning
       List<String> parsedInterests = [];
       final dynamic interestsData = json['interests'];
       if (interestsData != null) {
         if (interestsData is String) {
-          parsedInterests = interestsData.split(',').where((s) => s.trim().isNotEmpty).toList();
+          // Clean up string if it looks like a JSON array representation
+          String cleanStr = interestsData
+              .replaceAll('[', '')
+              .replaceAll(']', '')
+              .replaceAll('"', '')
+              .replaceAll("'", "");
+          parsedInterests = cleanStr.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
         } else if (interestsData is List) {
-          parsedInterests = interestsData.map((e) => e?.toString() ?? '').where((e) => e.isNotEmpty).toList();
+          parsedInterests = interestsData.map((e) {
+            String s = e?.toString() ?? '';
+            return s.replaceAll('"', '').replaceAll("'", "").trim();
+          }).where((e) => e.isNotEmpty).toList();
         }
       }
 
@@ -132,14 +171,22 @@ class User {
         }
       }
 
-      // Handle looking_for with safety
+      // Handle looking_for with safety & cleaning
       List<String> parsedLookingFor = [];
       final dynamic lookingForData = json['looking_for'];
       if (lookingForData != null) {
         if (lookingForData is String) {
-          parsedLookingFor = lookingForData.split(',').where((s) => s.trim().isNotEmpty).toList();
+          String cleanStr = lookingForData
+              .replaceAll('[', '')
+              .replaceAll(']', '')
+              .replaceAll('"', '')
+              .replaceAll("'", "");
+          parsedLookingFor = cleanStr.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
         } else if (lookingForData is List) {
-          parsedLookingFor = lookingForData.map((e) => e?.toString() ?? '').where((e) => e.isNotEmpty).toList();
+          parsedLookingFor = lookingForData.map((e) {
+            String s = e?.toString() ?? '';
+            return s.replaceAll('"', '').replaceAll("'", "").trim();
+          }).where((e) => e.isNotEmpty).toList();
         }
       }
 
@@ -172,6 +219,13 @@ class User {
         matchReason: json['match_reason']?.toString(),
         lat: double.tryParse(json['lat']?.toString() ?? ''),
         lng: double.tryParse(json['lng']?.toString() ?? ''),
+        ambitionScore: int.tryParse(json['ambition_score']?.toString() ?? '') ?? 0,
+        personalityScore: int.tryParse(json['personality_score']?.toString() ?? '') ?? 0,
+        careerScore: int.tryParse(json['career_score']?.toString() ?? '') ?? 0,
+        coreValuesScore: int.tryParse(json['core_values_score']?.toString() ?? '') ?? 0,
+        interestsScore: int.tryParse(json['interests_score']?.toString() ?? '') ?? 0,
+        lifestyleScore: int.tryParse(json['lifestyle_score']?.toString() ?? '') ?? 0,
+        familyOrientationScore: int.tryParse(json['family_orientation_score']?.toString() ?? '') ?? 0,
       );
     } catch (e) {
       print('CRITICAL ERROR parsing user: $e');

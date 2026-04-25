@@ -64,7 +64,7 @@ for (let i = 1; i <= 500; i++) {
     sql += `INSERT INTO users (phone) VALUES ('${phone}');\n`;
     sql += `SET @user_id = LAST_INSERT_ID();\n`;
     sql += `INSERT INTO profiles (user_id, display_name, age, occupation, bio, interests, location) ` +
-        `VALUES (@user_id, '${name}', ${age}, '${job}', '${bio}', '${interest}', POINT(${lat}, ${lng}));\n`;
+        `VALUES (@user_id, '${name}', ${age}, '${job}', '${bio}', '${interest}', POINT(${lng}, ${lat}));\n`;
 
     // Add a main photo for each
     const photo = PHOTOS[Math.floor(Math.random() * PHOTOS.length)];

@@ -1,4 +1,4 @@
-const { User } = require('../models');
+const { User, Profile } = require('../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -47,7 +47,16 @@ exports.verifyOTP = async (req, res) => {
         if (!user) {
             // Auto-register if user doesn't exist
             const newUser = await User.create({ phone });
-            user = { id: newUser.id, phone };
+            
+            // Initialize profile for new user
+            await Profile.create({
+                user_id: newUser.id,
+                display_name: `User_${phone.slice(-4)}`,
+                points: 0,
+                current_title: 'Newbie'
+            });
+
+            user = { id: newUser.id, phone, status: newUser.status };
         }
 
         if (user.status === 'banned') {
@@ -76,11 +85,21 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await User.create({ email, password: hashedPassword });
 
+        // Initialize profile for new user
+        await Profile.create({
+            user_id: newUser.id,
+            display_name: email.split('@')[0],
+            points: 0,
+            current_title: 'Newbie'
+        });
+
         const user = { id: newUser.id, email, role: newUser.role, status: newUser.status };
         const token = generateToken(newUser.id);
 
+        console.log(`[AUTH] User registered: ${email}`);
         res.status(201).json({ message: 'User registered successfully', token, user });
     } catch (error) {
+        console.error('[AUTH ERROR] Register:', error.message);
         res.status(500).json({ error: error.message });
     }
 };
@@ -107,6 +126,7 @@ exports.login = async (req, res) => {
         }
 
         const token = generateToken(user.id);
+        console.log(`[AUTH] User logged in: ${email}`);
         res.json({ 
             message: 'Login successful', 
             token, 
@@ -118,6 +138,7 @@ exports.login = async (req, res) => {
             } 
         });
     } catch (error) {
+        console.error('[AUTH ERROR] Login:', error.message);
         res.status(500).json({ error: error.message });
     }
 };

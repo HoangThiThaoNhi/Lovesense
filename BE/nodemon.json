@@ -1,0 +1,3 @@
+{
+  "ignore": ["*.log", "data/*.json", "src/logs/*", "fix_location_nullable.js"]
+}

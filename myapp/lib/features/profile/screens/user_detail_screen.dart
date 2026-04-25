@@ -122,6 +122,14 @@ class _UserDetailScreenState extends ConsumerState<UserDetailScreen> {
                       const SizedBox(height: 32),
                     ],
 
+                    // DNA Analysis Section
+                    if (user.ambitionScore > 0 || user.personalityScore > 0) ...[
+                      _buildSectionTitle('Soulmate DNA Analysis'),
+                      const SizedBox(height: 16),
+                      _buildDNAAnalysis(user),
+                      const SizedBox(height: 32),
+                    ],
+
                     // Gamification
                     _buildGamificationCard(user),
                   ]),
@@ -383,6 +391,74 @@ class _UserDetailScreenState extends ConsumerState<UserDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDNAAnalysis(User user) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey[100]!),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildDNABar('Tham vọng', user.ambitionScore, Colors.orange),
+          const SizedBox(height: 16),
+          _buildDNABar('Tính cách', user.personalityScore * 20, Colors.purple), // Convert 1-5 to 1-100
+          const SizedBox(height: 16),
+          _buildDNABar('Sự nghiệp', user.careerScore, Colors.blue),
+          const SizedBox(height: 16),
+          _buildDNABar('Giá trị sống', user.coreValuesScore, Colors.green),
+          const SizedBox(height: 16),
+          _buildDNABar('Định hướng gia đình', user.familyOrientationScore, Colors.pink),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDNABar(String label, int score, Color color) {
+    // Ensure score is within 0-100
+    final double normalizedScore = (score > 100 ? 100 : (score < 0 ? 0 : score)) / 100.0;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black54)),
+            Text('$score%', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Stack(
+          children: [
+            Container(
+              height: 8,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            FractionallySizedBox(
+              widthFactor: normalizedScore,
+              child: Container(
+                height: 8,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [color, color.withOpacity(0.7)]),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ).animate().shimmer(duration: 1500.ms),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

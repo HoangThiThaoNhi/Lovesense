@@ -11,12 +11,28 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING(20),
         unique: true
     },
+    full_name: {
+        type: DataTypes.STRING(191),
+        allowNull: true
+    },
+    birthday: {
+        type: DataTypes.DATEONLY,
+        allowNull: true
+    },
     email: {
         type: DataTypes.STRING(191),
         unique: true
     },
     password: {
         type: DataTypes.STRING(255)
+    },
+    gender: {
+        type: DataTypes.STRING(20),
+        allowNull: true
+    },
+    target_gender: {
+        type: DataTypes.STRING(20),
+        allowNull: true
     },
     google_id: {
         type: DataTypes.STRING(191),
@@ -30,6 +46,18 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING(191),
         unique: true
     },
+    avatar_url: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    bio: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    created_at: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
+    },
     role: {
         type: DataTypes.ENUM('user', 'admin'),
         defaultValue: 'user'
@@ -38,16 +66,41 @@ const User = sequelize.define('User', {
         type: DataTypes.ENUM('active', 'banned', 'flagged', 'inactive'),
         defaultValue: 'active'
     },
-    created_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
+    // DNA Scores
+    ambition_score: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    personality_score: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    career_score: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    core_values_score: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    interests_score: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    lifestyle_score: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    family_orientation_score: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
     }
 }, {
     tableName: 'users',
-    timestamps: false // Giả định timestamps đã có trong schema
+    timestamps: false
 });
 
-// Giữ lại các helper method cũ để hạn chế sửa controller quá nhiều
+// Helper methods
 User.findById = async function (id) {
     return await User.findByPk(id);
 };

@@ -169,6 +169,12 @@ exports.generateDNAReport = async (req, res) => {
             ai_ideal_description: report.summary,
             ai_match_keywords: dnaKeywords // LƯU TỪ KHÓA ĐỂ MATCHING
         });
+
+        // NEW: Also sync to User table 7 score columns
+        const dnaScores = AIService.calculateDNAProfile(null, dnaVector);
+        const { User } = require('../models');
+        await User.update(dnaScores, { where: { id: userId } });
+        console.log(`[Quiz] DNA Scores synced to User table for user ${userId}`);
         
         res.json({
             ...report,

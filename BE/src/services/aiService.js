@@ -32,7 +32,7 @@ Bạn là "Lovesense Advisor" - Quân sư tình yêu Gen Z độc quyền của 
 class AIService {
     constructor() {
         this.model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash", // Chuyển về 1.5 Flash để đảm bảo độ ổn định cao nhất cho mọi vùng
+            model: "gemini-1.5-flash-latest", // Updated to -latest to fix 404
             systemInstruction: SYSTEM_PROMPT,
             safetySettings: [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -44,7 +44,7 @@ class AIService {
 
         // Model dự phòng dùng bản 1.5 pro nếu cần phân tích sâu
         this.fallbackModel = genAI.getGenerativeModel({
-            model: "gemini-1.5-pro",
+            model: "gemini-1.5-pro-latest",
             systemInstruction: SYSTEM_PROMPT
         });
     }
@@ -605,6 +605,90 @@ GIỚI TÍNH CỦA NGƯỜI DÙNG: **${gender === 'Tất cả' ? 'Nam hoặc N�
             highlights: highlights,
             ideal_vibe: `Một người trân trọng sự '${highlights[0].replace('✨ ', '')}' và sẵn sàng cùng bạn xây dựng tương lai.`
         };
+    }
+    /**
+     * Map survey categories or AI vectors to the 7 specific score columns in the users table.
+     */
+    calculateDNAProfile(answers, aiVector = null) {
+        console.log("[AI Engine] Calculating DNA Profile Scores...");
+        
+        // Initialize scores (0.0 to 1.0)
+        let scores = {
+            ambition_score: 0.5,
+            personality_score: 0.5,
+            career_score: 0.5,
+            core_values_score: 0.5,
+            interests_score: 0.5,
+            lifestyle_score: 0.5,
+            family_orientation_score: 0.5
+        };
+
+        // If AI Vector is provided (from Groq/Gemini), use it for precise mapping
+        if (aiVector) {
+            console.log("[AI Engine] Using AI Vector for mapping...");
+            // Map AI result (16-22 criteria) to 7 DB columns
+            // This is based on the ids in anof.json
+            
+            // Helper to get score from vector (vector can be array or object)
+            const getVal = (id, index) => {
+                if (Array.isArray(aiVector)) return aiVector[index] || 0.5;
+                return aiVector[id] || 0.5;
+            };
+
+            scores.ambition_score = getVal('career_ambition', 10); 
+            scores.personality_score = (getVal('extroversion', 0) + getVal('emotional_stability', 1) + getVal('openness_to_exp', 2)) / 3;
+            scores.career_score = (getVal('career_ambition', 10) + getVal('financial_transparency', 11)) / 2;
+            scores.core_values_score = (getVal('loyalty_definition', 7) + getVal('religion_influence', 5)) / 2;
+            scores.interests_score = (getVal('travel_style', 20) + getVal('social_circle', 21)) / 2;
+            scores.lifestyle_score = (getVal('spending_habit', 9) + getVal('cleanliness_level', 15) + getVal('diet_fitness', 16)) / 3;
+            scores.family_orientation_score = getVal('family_goal', 4);
+
+        } else if (answers && Array.isArray(answers)) {
+            // Fallback to heuristic mapping if AI vector is missing
+            console.log("[AI Engine] Using heuristic mapping from raw answers...");
+            answers.forEach(ans => {
+                const category = (ans.category || "").toUpperCase();
+                const text = (ans.answer || "").toLowerCase();
+                
+                if (category.includes('G1')) { 
+                    if (text.includes('chủ động') || text.includes('sáng tạo')) scores.ambition_score += 0.15;
+                    if (text.includes('ổn định') || text.includes('an nhàn')) scores.ambition_score -= 0.1;
+                }
+                if (category.includes('G2')) { 
+                    if (text.includes('hướng ngoại') || text.includes('năng động')) scores.personality_score += 0.2;
+                    if (text.includes('hướng nội') || text.includes('sâu sắc')) scores.personality_score -= 0.15;
+                }
+                if (category.includes('G3')) { 
+                    if (text.includes('thăng tiến') || text.includes('kinh doanh')) scores.career_score += 0.2;
+                }
+                if (category.includes('G4')) { 
+                    if (text.includes('gia đình') || text.includes('kết hôn')) scores.family_orientation_score += 0.25;
+                    if (text.includes('tự do') || text.includes('độc thân')) scores.family_orientation_score -= 0.2;
+                }
+                if (category.includes('G5')) { 
+                    if (text.includes('du lịch') || text.includes('thể thao')) scores.interests_score += 0.15;
+                }
+            });
+        }
+
+        // Final normalization and scaling to 1-100 if preferred, or keep 0-1
+        // The user's prompt suggested Math.round(score * 100)
+        const finalScores = {};
+        Object.keys(scores).forEach(key => {
+            let rawValue = scores[key];
+            
+            // Công thức chuyển đổi từ dải [-1, 1] sang [0, 1] để không bị mất dữ liệu khi điểm âm
+            // Nếu điểm là -1 => 0, điểm 0 => 0.5, điểm 1 => 1
+            let normalized = (rawValue + 1) / 2; 
+
+            // Đảm bảo vẫn nằm trong safe zone [0, 1] trước khi nhân 100
+            normalized = Math.max(0, Math.min(1, normalized));
+            
+            finalScores[key] = Math.round(normalized * 100);
+        });
+
+        console.log("[AI Engine] Final Mapped Scores (0-100):", finalScores);
+        return finalScores;
     }
 }
 
