@@ -10,12 +10,14 @@ class DiscoveryFilter {
   final double maxAge;
   final double maxDistance;
   final bool useInterests;
+  final bool ignoreDNA;
 
   DiscoveryFilter({
     this.minAge = 18,
     this.maxAge = 100,
     this.maxDistance = 20000,
     this.useInterests = false,
+    this.ignoreDNA = false,
   });
 
   DiscoveryFilter copyWith({
@@ -23,12 +25,14 @@ class DiscoveryFilter {
     double? maxAge,
     double? maxDistance,
     bool? useInterests,
+    bool? ignoreDNA,
   }) {
     return DiscoveryFilter(
       minAge: minAge ?? this.minAge,
       maxAge: maxAge ?? this.maxAge,
       maxDistance: maxDistance ?? this.maxDistance,
       useInterests: useInterests ?? this.useInterests,
+      ignoreDNA: ignoreDNA ?? this.ignoreDNA,
     );
   }
 
@@ -38,6 +42,7 @@ class DiscoveryFilter {
       'maxAge': maxAge.toInt().toString(),
       'maxDistance': maxDistance.toInt().toString(),
       'useInterests': useInterests.toString(),
+      'ignoreDNA': ignoreDNA.toString(),
     };
     return params;
   }

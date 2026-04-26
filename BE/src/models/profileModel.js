@@ -72,6 +72,23 @@ const Profile = sequelize.define('Profile', {
         type: DataTypes.STRING(255),
         allowNull: true
     },
+    city: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    district: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    address: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    ai_preferences: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: {}
+    },
     looking_for: {
         type: DataTypes.TEXT,
         allowNull: true
@@ -164,6 +181,7 @@ Profile.upsert = async function (profileData) {
             ...rest, 
             user_id, 
             location: finalLocation || null, 
+            living_at: rest.living_at || [rest.address, rest.district, rest.city].filter(Boolean).join(', '),
             points: 0, 
             current_title: 'Newbie' 
         }
@@ -172,7 +190,8 @@ Profile.upsert = async function (profileData) {
     if (!created) {
         // Prevent users from updating their own points or title through profile updates
         const { points, current_title, ...safeUpdateData } = rest;
-        await profile.update({ ...safeUpdateData, location: finalLocation });
+        const living_at = safeUpdateData.living_at || [safeUpdateData.address, safeUpdateData.district, safeUpdateData.city].filter(Boolean).join(', ');
+        await profile.update({ ...safeUpdateData, living_at, location: finalLocation });
     }
 
     return profile.id;

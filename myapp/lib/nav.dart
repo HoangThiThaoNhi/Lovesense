@@ -25,6 +25,7 @@ import 'theme.dart';
 import 'models/user_model.dart';
 import 'features/match/providers/match_provider.dart';
 import 'features/swipe/screens/dna_quiz_screen.dart';
+import 'features/swipe/screens/dna_report_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 // Bottom Navigation Scaffold
@@ -239,9 +240,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Logged in cases
       if (isSplash || isLoggingIn) return '/home';
 
-      if (!isProfileComplete && !isSettingUp) {
-        return '/profile-setup';
-      }
+      // Allow access to home even if profile is incomplete
+      // Users will be prompted within the Discovery screen instead
 
       return null;
     },
@@ -357,6 +357,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/dna-quiz',
         name: 'dna-quiz',
         builder: (context, state) => const DNAQuizScreen(),
+      ),
+      GoRoute(
+        path: '/dna-report',
+        name: 'dna-report',
+        builder: (context, state) => const DNAReportScreen(),
       ),
     ],
   );

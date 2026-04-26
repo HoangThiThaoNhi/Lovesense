@@ -2,6 +2,16 @@ const { Swipe, Profile, Match, Survey, Notification, User } = require('../models
 const GamificationService = require('../services/gamificationService');
 const AIService = require('../services/aiService');
 
+exports.getLikesReceived = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const pendingLikes = await Swipe.getPendingLikes(userId);
+        res.json(pendingLikes);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 exports.getDiscovery = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -47,21 +57,16 @@ exports.getDiscovery = async (req, res) => {
             minAge: parseInt(minAge) || 18,
             maxAge: parseInt(maxAge) || 100,
             maxDistance: parseInt(maxDistance) || 20000,
-            useInterests: (useInterests === 'true') || (profile.ai_match_keywords && profile.ai_match_keywords.length > 0), // Tự động bật nếu có DNA
+            ignoreDNA: req.query.ignoreDNA === 'true',
+            useInterests: (useInterests === 'true') || (profile.ai_match_keywords && profile.ai_match_keywords.length > 0), 
             userInterests: profile.interests || [],
             lookingFor: lookingFor,
             aiKeywords: profile.ai_match_keywords || []
         };
 
-        // Ưu tiên tọa độ từ query, sau đó đến profile, cuối cùng là HCM default
-        let lat = parseFloat(queryLat) || profile.lat || 10.762622;
-        let lng = parseFloat(queryLng) || profile.lng || 106.660172;
-
-        // Mock emulator to Hanoi for realistic distance testing (Chỉ mock nếu là tọa độ mặc định của Google Emulator)
-        if (Math.abs(lat - 37.4219983) < 0.01 && Math.abs(lng - (-122.084)) < 0.01) {
-            lat = 21.0285;
-            lng = 105.8542;
-        }
+        // Ưu tiên tọa độ từ query, sau đó đến profile
+        let lat = parseFloat(queryLat) || profile.lat;
+        let lng = parseFloat(queryLng) || profile.lng;
 
         console.log(`[Discovery] User ${userId} at (${lat}, ${lng}) with filters:`, discoveryFilters);
 
@@ -140,6 +145,9 @@ exports.swipe = async (req, res) => {
         const swiperId = req.user.id;
 
         await Swipe.create({ swiper_id: swiperId, swiped_id: swipedId, type });
+
+        // Update AI Preferences based on swipe behavior
+        _updateAIPreferences(swiperId, swipedId, type);
 
         let isMatch = false;
         if (type === 'like' || type === 'superlike') {
@@ -241,3 +249,121 @@ exports.resetSwipes = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+/**
+ * Helper to update AI preferences based on swipe behavior
+ */
+async function _updateAIPreferences(swiperId, swipedId, type) {
+    try {
+        const swiperProfile = await Profile.findOne({ where: { user_id: swiperId } });
+        const swipedProfile = await Profile.findOne({ where: { user_id: swipedId } });
+        
+        if (!swiperProfile || !swipedProfile) return;
+
+        let prefs = swiperProfile.ai_preferences || {};
+        // Normalize if it's a string (though Sequelize JSON should handle it)
+        if (typeof prefs === 'string') {
+            try { prefs = JSON.parse(prefs); } catch(e) { prefs = {}; }
+        }
+
+        // Keywords to track: occupation, interests, bio-vibe, effort, height, and purpose
+        const keywords = [];
+        if (swipedProfile.occupation) {
+            keywords.push(swipedProfile.occupation.toLowerCase().trim());
+        }
+        
+        // Track Purpose
+        if (swipedProfile.purpose) {
+            keywords.push(`mục-đích-${swipedProfile.purpose.toLowerCase().trim().replace(/\s+/g, '-')}`);
+        }
+
+        // Track Height preference (categorized)
+        if (swipedProfile.height) {
+            if (swipedProfile.height >= 175) keywords.push('gu-người-cao');
+            else if (swipedProfile.height <= 160) keywords.push('gu-nhỏ-nhắn');
+        }
+
+        // Analyze profile effort (bio length as proxy)
+        const bioLength = (swipedProfile.bio || '').length;
+        if (bioLength > 150) keywords.push('hồ-sơ-chi-tiết');
+        else if (bioLength < 30) keywords.push('bí-ẩn-ít-nói');
+
+        // Extract style keywords from bio (simple heuristic)
+        const bio = (swipedProfile.bio || '').toLowerCase();
+        if (bio.includes('haha') || bio.includes('hihi') || bio.includes('vui')) keywords.push('phong-cách-hài-hước');
+        if (bio.includes('tìm') || bio.includes('muốn') || bio.includes('nghiêm túc')) keywords.push('nghiêm-túc');
+        if (bio.includes('chill') || bio.includes('nhẹ nhàng')) keywords.push('chill-vibe');
+
+        if (swipedProfile.interests) {
+            let interests = [];
+            try {
+                interests = Array.isArray(swipedProfile.interests) 
+                    ? swipedProfile.interests 
+                    : JSON.parse(swipedProfile.interests || '[]');
+            } catch (e) { interests = []; }
+            
+            interests.forEach(i => {
+                if (typeof i === 'string') keywords.push(i.toLowerCase().trim());
+            });
+        }
+
+        const multiplier = (type === 'like' || type === 'superlike') ? 1 : -0.5;
+        const weightBase = (type === 'superlike') ? 2 : 1;
+
+        // Apply weights
+        keywords.forEach(kw => {
+            if (!kw || kw.length < 2) return;
+            prefs[kw] = (prefs[kw] || 0) + (weightBase * multiplier);
+            
+            // Safety caps
+            if (prefs[kw] > 50) prefs[kw] = 50;
+            if (prefs[kw] < -20) prefs[kw] = -20;
+        });
+
+        // Save updated preferences
+        await swiperProfile.update({ ai_preferences: prefs });
+        console.log(`[AI Prefs] Updated keywords for user ${swiperId}: ${keywords.join(', ')} (Action: ${type})`);
+
+        // DEEP LEARNING: Every 5 Likes, trigger a deep taste analysis using Gemini
+        if (type === 'like' || type === 'superlike') {
+            const likesCount = await Swipe.count({ 
+                where: { 
+                    swiper_id: swiperId, 
+                    type: { [require('sequelize').Op.in]: ['like', 'superlike'] } 
+                } 
+            });
+
+            if (likesCount > 0 && likesCount % 5 === 0) {
+                console.log(`[AI Prefs] Triggering Deep Taste Analysis for user ${swiperId} (Likes: ${likesCount})`);
+                
+                // Get last 10 liked profiles
+                const lastLikes = await Swipe.findAll({
+                    where: { swiper_id: swiperId, type: { [require('sequelize').Op.in]: ['like', 'superlike'] } },
+                    order: [['created_at', 'DESC']],
+                    limit: 10
+                });
+
+                const swipedIds = lastLikes.map(l => l.swiped_id);
+                const likedProfiles = await Profile.findAll({ where: { user_id: swipedIds } });
+
+                if (likedProfiles.length >= 3) {
+                    const analysis = await AIService.analyzeUserTaste(likedProfiles);
+                    if (analysis && analysis.learned_tags) {
+                        // Merge new learned tags with existing DNA keywords
+                        let currentKeywords = swiperProfile.ai_match_keywords || [];
+                        const updatedKeywords = [...new Set([...currentKeywords, ...analysis.learned_tags])].slice(0, 20);
+                        
+                        await swiperProfile.update({ 
+                            ai_match_keywords: updatedKeywords,
+                            ai_ideal_description: analysis.analysis // Update the AI's understanding description
+                        });
+                        console.log(`[AI Prefs] Deep Learning Success for ${swiperId}. New Tags: ${analysis.learned_tags.join(', ')}`);
+                    }
+                }
+            }
+        }
+
+    } catch (e) {
+        console.error('[AI Prefs Update Error]:', e);
+    }
+}

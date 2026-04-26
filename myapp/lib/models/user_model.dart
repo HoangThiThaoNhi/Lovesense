@@ -21,6 +21,9 @@ class User {
   final double matchScore;
   final bool isDNAMatch;
   final String? matchReason;
+  final String? city;
+  final String? district;
+  final String? address;
   final double? lat;
   final double? lng;
   
@@ -56,6 +59,9 @@ class User {
     this.matchScore = 0.0,
     this.isDNAMatch = false,
     this.matchReason,
+    this.city,
+    this.district,
+    this.address,
     this.lat,
     this.lng,
     this.ambitionScore = 0,
@@ -90,6 +96,9 @@ class User {
     double? matchScore,
     bool? isDNAMatch,
     String? matchReason,
+    String? city,
+    String? district,
+    String? address,
     double? lat,
     double? lng,
     int? ambitionScore,
@@ -123,6 +132,9 @@ class User {
       matchScore: matchScore ?? this.matchScore,
       isDNAMatch: isDNAMatch ?? this.isDNAMatch,
       matchReason: matchReason ?? this.matchReason,
+      city: city ?? this.city,
+      district: district ?? this.district,
+      address: address ?? this.address,
       lat: lat ?? this.lat,
       lng: lng ?? this.lng,
       ambitionScore: ambitionScore ?? this.ambitionScore,
@@ -194,9 +206,14 @@ class User {
       final bool verified = (json['is_verified'] == 1 || json['is_verified'] == true || json['is_verified'] == 'true');
       final bool dnaMatch = (json['is_dna_match'] == 1 || json['is_dna_match'] == true || json['is_dna_match'] == 'true');
 
+      String parsedName = (json['display_name']?.toString() ?? '').trim();
+      if (parsedName.isEmpty) parsedName = (json['full_name']?.toString() ?? '').trim();
+      if (parsedName.isEmpty) parsedName = (json['name']?.toString() ?? '').trim();
+      // NOTE: No fallback to 'Người dùng mới' - empty string means profile is not set up
+
       return User(
         id: (json['user_id'] ?? json['id'] ?? '').toString(),
-        name: (json['display_name'] ?? json['name'] ?? 'User').toString(),
+        name: parsedName,
         age: (json['age'] as num?)?.toInt() ?? 0,
         bio: (json['bio'] ?? '').toString(),
         job: (json['occupation'] ?? json['job'] ?? '').toString(),
@@ -217,6 +234,9 @@ class User {
         matchScore: double.tryParse(json['match_score']?.toString() ?? '0.0') ?? 0.0,
         isDNAMatch: dnaMatch,
         matchReason: json['match_reason']?.toString(),
+        city: json['city']?.toString(),
+        district: json['district']?.toString(),
+        address: json['address']?.toString(),
         lat: double.tryParse(json['lat']?.toString() ?? ''),
         lng: double.tryParse(json['lng']?.toString() ?? ''),
         ambitionScore: int.tryParse(json['ambition_score']?.toString() ?? '') ?? 0,

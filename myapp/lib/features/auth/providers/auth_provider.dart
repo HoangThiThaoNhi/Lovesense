@@ -46,6 +46,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true, clearError: true);
+    await Future.delayed(Duration.zero); 
     try {
       final response = await ApiService.post('/auth/login', {
         'email': email,
@@ -57,9 +58,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (response.containsKey('token')) {
         final token = response['token'];
         
-        // Fetch profile immediately to determine redirect
+        // First, try to build user from the login response itself (which now contains profile data)
+        final userData = response['user'] ?? {};
         User user;
+        
         try {
+          // Try fetching the full profile for the most up-to-date data
           final profileResponse = await ApiService.get('/profile/me', token: token);
           print('DEBUG: Profile Response: $profileResponse');
           
@@ -69,22 +73,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
             throw 'Invalid profile data structure';
           }
         } catch (e) {
-          // Profile might not exist (404), which is fine for new users
-          print('DEBUG: Profile not found or error during login, using data from login response: $e');
-          
-          final userData = response['user'] ?? {};
-          user = User(
-            id: (userData['id'] ?? 'unknown').toString(),
-            name: (userData['full_name'] ?? '').toString(),
-            age: 0,
-            bio: '',
-            job: '',
-            imageUrls: [],
-            photos: [],
-            interests: [],
-            distanceKm: 0,
-            email: email,
-          );
+          // Profile fetch failed - fall back to data included in login response
+          print('DEBUG: fetchProfile failed, using login response data: $e');
+          user = User.fromJson({
+            ...userData,
+            // Ensure id mapping works
+            'id': userData['id'],
+          });
         }
 
         state = state.copyWith(
@@ -106,6 +101,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> register(String email, String password) async {
     state = state.copyWith(isLoading: true, clearError: true);
+    await Future.delayed(Duration.zero);
     try {
       final response = await ApiService.post('/auth/register', {
         'email': email,

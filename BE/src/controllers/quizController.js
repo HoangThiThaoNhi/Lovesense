@@ -115,7 +115,7 @@ exports.submitAnswer = async (req, res) => {
         
         // 2. Thưởng điểm XP (Mỗi câu hỏi DNA cộng 5 XP)
         const points = 5;
-        const gamification = await GamificationService.awardPoints(userId, points, `Trả lời câu hỏi AI DNA: ${option.question.content.substring(0, 30)}...`);
+        const gamification = await GamificationService.awardPoints(userId, points, `Trả lời câu hỏi AI DNA: ${option.question.content.substring(0, 30)}...`, { skipNotification: true });
         
         res.json({ 
             message: 'Answer processed', 
@@ -159,15 +159,14 @@ exports.generateDNAReport = async (req, res) => {
         const report = await AIService.generateDNAReport(dnaVector);
         
         // Cập nhật keywords vào profile để Discovery có thể tìm người phù hợp
-        // Lấy cả nhãn AI và tên tiêu chí gốc để tăng tỉ lệ match
         const dnaKeywords = [
-            ...(report.highlights || []).map(h => h.replace('✨ ', '')),
-            ...Object.keys(dnaVector).filter(k => Math.abs(dnaVector[k]) > 0.5) // Lấy các ID tiêu chí có điểm cao
+            ...(report.user_highlights || []).map(h => h.replace('✨ ', '')),
+            ...Object.keys(dnaVector).filter(k => Math.abs(dnaVector[k]) > 0.5) 
         ];
 
         await profile.update({ 
-            ai_ideal_description: report.summary,
-            ai_match_keywords: dnaKeywords // LƯU TỪ KHÓA ĐỂ MATCHING
+            ai_ideal_description: report.user_summary, // Lưu nhận xét về BẠN
+            ai_match_keywords: dnaKeywords
         });
 
         // NEW: Also sync to User table 7 score columns
@@ -175,9 +174,20 @@ exports.generateDNAReport = async (req, res) => {
         const { User } = require('../models');
         await User.update(dnaScores, { where: { id: userId } });
         console.log(`[Quiz] DNA Scores synced to User table for user ${userId}`);
+
+        // Create a summary notification for completing the test
+        await Notification.create({
+            user_id: userId,
+            type: 'ai_analysis',
+            title: '✨ Giải mã DNA Soulmate thành công!',
+            content: 'Chúc mừng! Bạn đã hoàn thành bài trắc nghiệm DNA. Lovesense AI đã cập nhật hồ sơ và sẵn sàng tìm kiếm nửa kia hoàn hảo cho bạn.',
+            metadata: { report_summary: (report.user_summary || '').substring(0, 50) }
+        });
         
         res.json({
-            ...report,
+            summary: report.user_summary,
+            highlights: report.user_highlights,
+            ideal_vibe: report.ideal_partner_vibe, // Renamed to match Flutter's expectation
             debug_dna: dnaVector
         });
     } catch (error) {

@@ -20,25 +20,64 @@ const fs = require('fs');
 
 exports.getMyProfile = async (req, res) => {
     try {
-        const profile = await Profile.findByUserId(req.user.id);
-        if (!profile) return res.status(404).json({ message: 'Profile not found' });
+        const userId = req.user.id;
+        const email = req.user.email;
+        
+        console.log(`[Profile] Fetching profile for email=${email} (userID: ${userId})`);
+        
+        let profile = await Profile.findByUserId(userId);
+        console.log(`[Profile] findByUserId(${userId}) result:`, profile ? `Found - name='${profile.display_name}', id=${profile.id}` : 'NULL - will create fresh');
+        
+        // SAFE RECOVERY: Only create profile if truly missing - NEVER search by name (could grab wrong profile)
+        if (!profile) {
+            console.log(`[Profile] No profile found for user ${userId}, will create a minimal one`);
+            let defaultName = 'Người dùng mới';
+            if (req.user.full_name && req.user.full_name.trim() !== '') {
+                defaultName = req.user.full_name;
+            } else if (email) {
+                defaultName = email.split('@')[0];
+            } else if (req.user.phone) {
+                defaultName = `User_${req.user.phone.slice(-4)}`;
+            }
+
+            let safeGender = 'other';
+            if (req.user.gender) {
+                const g = req.user.gender.toLowerCase();
+                if (g === 'male' || g === 'nam') safeGender = 'male';
+                else if (g === 'female' || g === 'nữ') safeGender = 'female';
+            }
+
+            profile = await Profile.create({
+                user_id: userId,
+                display_name: defaultName,
+                gender: safeGender,
+                bio: req.user.bio || '',
+                points: 0,
+                current_title: 'Newbie'
+            });
+            profile = await Profile.findByUserId(userId);
+        }
+
         const photos = await Photo.findAll({
-            where: { user_id: req.user.id },
+            where: { user_id: userId },
             order: [['order', 'ASC']],
             attributes: ['id', 'image_url', 'is_main', 'order']
         });
-        const badges = await getBadgesForUser(req.user.id);
+        const badges = await getBadgesForUser(userId);
         const host = req.get('host');
         const protocol = req.protocol;
         const baseUrl = `${protocol}://${host}`;
 
         // Map gender back to App format
-        if (profile.gender === 'male') profile.gender = 'nam';
-        else if (profile.gender === 'female') profile.gender = 'nữ';
-        else if (profile.gender === 'other') profile.gender = 'khác';
+        let genderVn = 'khác';
+        if (profile.gender === 'male' || profile.gender === 'nam') genderVn = 'nam';
+        else if (profile.gender === 'female' || profile.gender === 'nữ') genderVn = 'nữ';
 
         res.json({
             ...profile,
+            display_name: profile.display_name,
+            occupation: profile.occupation || '',  // Return empty string, not placeholder text
+            gender: genderVn,
             email: req.user.email,
             phone: req.user.phone,
             badges,

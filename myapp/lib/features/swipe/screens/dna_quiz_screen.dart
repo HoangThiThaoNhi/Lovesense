@@ -507,10 +507,20 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: () {
-                      ref.read(swipeProvider.notifier).fetchDiscovery(silent: true);
-                      context.pop();
-                      ToastUtils.showModernToast(context, '✨ Soulmate đang chờ bạn ở trang chủ!', type: ToastType.success);
+                    onPressed: () async {
+                      // 1. Auto-enable DNA Mode (set ignoreDNA to false)
+                      final currentFilter = ref.read(swipeProvider).filter;
+                      ref.read(swipeProvider.notifier).updateFilters(
+                        currentFilter.copyWith(ignoreDNA: false),
+                      );
+
+                      // 2. Perform a hard refresh to show new DNA-based results
+                      await ref.read(swipeProvider.notifier).fetchDiscovery(silent: false);
+                      
+                      if (context.mounted) {
+                        context.pop();
+                        ToastUtils.showModernToast(context, '✨ Soulmate đang chờ bạn ở trang chủ!', type: ToastType.success);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,

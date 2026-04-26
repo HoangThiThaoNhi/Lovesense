@@ -203,83 +203,103 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                       ),
                     ),
 
-                    if (pendingRequests.isNotEmpty)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Lời mời kết nối', 
-                                style: AppTextStyles.titleLarge.copyWith(fontSize: 18, color: Colors.orange)
-                              ),
-                              const SizedBox(height: 12),
-                              ...pendingRequests.map((match) {
-                                final user = User(
-                                  id: match.userId,
-                                  name: match.name,
-                                  age: 20,
-                                  bio: '',
-                                  job: '',
-                                  imageUrls: match.imageUrl != null ? [match.imageUrl!] : ['https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&auto=format&fit=crop&q=60'],
-                                  photos: [],
-                                  interests: [],
-                                  distanceKm: 0,
-                                );
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [Colors.white.withOpacity(0.9), Colors.white.withOpacity(0.4)],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(24),
-                                      boxShadow: [
-                                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-                                      ],
-                                      border: Border.all(color: Colors.white.withOpacity(0.5)),
-                                    ),
-                                    child: Row(
+                    // Pending Likes (Who Liked You) - Horizontal Carousel
+                    if (matchState.pendingLikes.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Đang chờ bạn chấp nhận', 
+                                  style: AppTextStyles.titleLarge.copyWith(fontSize: 16, color: Colors.orangeAccent)
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${matchState.pendingLikes.length}',
+                                    style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 110,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: matchState.pendingLikes.length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 16),
+                                itemBuilder: (context, index) {
+                                  final like = matchState.pendingLikes[index];
+                                  final String imageUrl = like['main_photo'] ?? 'https://ui-avatars.com/api/?name=User';
+                                  final String name = like['display_name'] ?? 'User';
+                                  final String userId = like['user_id'].toString();
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      _showQuickMatchDialog(context, ref, like);
+                                    },
+                                    child: Column(
                                       children: [
-                                        CircleAvatar(
-                                          radius: 28,
-                                          backgroundImage: NetworkImage(user.imageUrls.first),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(user.name, style: AppTextStyles.titleLarge.copyWith(fontSize: 16)),
-                                              Text('Muốn trò chuyện với bạn', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                                            ],
-                                          ),
-                                        ),
-                                        Row(
+                                        Stack(
                                           children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.close, color: Colors.red),
-                                              onPressed: () => ref.read(matchProvider.notifier).rejectMatch(match.id),
+                                            Container(
+                                              padding: const EdgeInsets.all(2.5),
+                                              decoration: const BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                gradient: LinearGradient(colors: [Colors.orange, Colors.redAccent]),
+                                              ),
+                                              child: CircleAvatar(
+                                                radius: 32,
+                                                backgroundImage: CachedNetworkImageProvider(imageUrl),
+                                              ),
                                             ),
-                                            IconButton(
-                                              icon: const Icon(Icons.check_circle, color: Colors.green, size: 28),
-                                              onPressed: () => ref.read(matchProvider.notifier).acceptMatch(match.id),
+                                            Positioned(
+                                              bottom: 0,
+                                              right: 0,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.white,
+                                                  shape: BoxShape.circle,
+                                                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                                                ),
+                                                child: const Icon(Icons.favorite, color: Colors.red, size: 14),
+                                              ),
                                             ),
                                           ],
-                                        )
+                                        ),
+                                        const SizedBox(height: 6),
+                                        SizedBox(
+                                          width: 70,
+                                          child: Text(
+                                            name,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                  ),
-                                );
-                              }).toList(),
-                            ],
-                          ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const Divider(height: 32, thickness: 0.5),
+                          ],
                         ),
                       ),
+                    ),
 
                     SliverPadding(
                       padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
@@ -459,6 +479,80 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                     ),
                   ],
                 ),
+      ),
+    );
+  }
+
+  void _showQuickMatchDialog(BuildContext context, WidgetRef ref, dynamic like) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.transparent,
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          width: 320,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20)],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Photo Header
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                child: CachedNetworkImage(
+                  imageUrl: like['main_photo'] ?? 'https://ui-avatars.com/api/?name=User',
+                  height: 350,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Text(
+                      '${like['display_name']}, ${like['age']}',
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      like['bio'] ?? 'Đã thích bạn! Hãy kết nối ngay.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // NOPE
+                        IconButton(
+                          onPressed: () {
+                            ref.read(matchProvider.notifier).quickNope(like['user_id'].toString());
+                            Navigator.pop(context);
+                          },
+                          icon: const Icon(Icons.close, color: Colors.red, size: 40),
+                        ),
+                        // LIKE (ACCEPT)
+                        IconButton(
+                          onPressed: () {
+                            ref.read(matchProvider.notifier).quickLike(like['user_id'].toString());
+                            Navigator.pop(context);
+                            ToastUtils.showModernToast(context, '✨ Tuyệt vời! Bạn và ${like['display_name']} đã ghép đôi.', type: ToastType.success);
+                          },
+                          icon: const Icon(Icons.favorite, color: Colors.green, size: 40),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

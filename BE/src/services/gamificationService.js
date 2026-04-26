@@ -2,7 +2,7 @@ const { sequelize, Profile, PointHistory, Badge, UserBadge, User, Notification, 
 const { Op } = require('sequelize');
 
 class GamificationService {
-    static async awardPoints(userId, points, action) {
+    static async awardPoints(userId, points, action, options = {}) {
         const t = await sequelize.transaction();
         try {
             // 1. Update Profile points
@@ -84,7 +84,7 @@ class GamificationService {
             });
 
             // 5. Create notifications
-            if (points !== 0) {
+            if (points !== 0 && !options.skipNotification) {
                 await Notification.create({
                     user_id: userId,
                     type: 'xp',

@@ -24,7 +24,9 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen> {
   @override
   void initState() {
     super.initState();
-    // Status is already loaded by the provider's constructor
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(gamificationProvider.notifier).loadStatus();
+    });
   }
 
   @override

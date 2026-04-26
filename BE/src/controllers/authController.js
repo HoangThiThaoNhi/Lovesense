@@ -64,7 +64,37 @@ exports.verifyOTP = async (req, res) => {
         }
 
         const token = generateToken(user.id);
-        res.json({ message: 'Login successful', token, user: { id: user.id, phone: user.phone, status: user.status } });
+        
+        // AUTO-FIX: Ensure profile exists and get full user data
+        let profile = await Profile.findOne({ where: { user_id: user.id } });
+        if (!profile) {
+            profile = await Profile.create({
+                user_id: user.id,
+                display_name: `User_${phone.slice(-4)}`,
+                points: 0,
+                current_title: 'Newbie'
+            });
+        }
+
+        const fullUser = await User.findByPk(user.id);
+
+        res.json({ 
+            message: 'Login successful', 
+            token, 
+            user: { 
+                id: fullUser.id, 
+                phone: fullUser.phone, 
+                full_name: fullUser.full_name,
+                status: fullUser.status,
+                ambition_score: fullUser.ambition_score,
+                personality_score: fullUser.personality_score,
+                career_score: fullUser.career_score,
+                core_values_score: fullUser.core_values_score,
+                interests_score: fullUser.interests_score,
+                lifestyle_score: fullUser.lifestyle_score,
+                family_orientation_score: fullUser.family_orientation_score
+            } 
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -93,7 +123,19 @@ exports.register = async (req, res) => {
             current_title: 'Newbie'
         });
 
-        const user = { id: newUser.id, email, role: newUser.role, status: newUser.status };
+        const user = { 
+            id: newUser.id, 
+            email: newUser.email, 
+            role: newUser.role, 
+            status: newUser.status,
+            ambition_score: 0,
+            personality_score: 0,
+            career_score: 0,
+            core_values_score: 0,
+            interests_score: 0,
+            lifestyle_score: 0,
+            family_orientation_score: 0
+        };
         const token = generateToken(newUser.id);
 
         console.log(`[AUTH] User registered: ${email}`);
@@ -126,15 +168,66 @@ exports.login = async (req, res) => {
         }
 
         const token = generateToken(user.id);
+        
+        // SAFE RECOVERY: Only create profile if truly missing - NEVER overwrite existing data
+        const existingProfile = await Profile.findOne({ where: { user_id: user.id } });
+        if (!existingProfile) {
+            console.log(`[AUTH] No profile for user ${user.id}, creating minimal profile...`);
+            let defaultName = '';
+            if (user.full_name && user.full_name.trim() !== '') {
+                defaultName = user.full_name.trim();
+            } else if (email) {
+                defaultName = email.split('@')[0];
+            } else if (user.phone) {
+                defaultName = `User_${user.phone.slice(-4)}`;
+            }
+
+            await Profile.create({
+                user_id: user.id,
+                display_name: defaultName,
+                points: 0,
+                current_title: 'Newbie'
+            });
+            console.log(`[AUTH] Minimal profile created for user ${user.id}`);
+        } else {
+            console.log(`[AUTH] Existing profile found (ID: ${existingProfile.id}) for user ${user.id} - keeping intact`);
+        }
+
         console.log(`[AUTH] User logged in: ${email}`);
+        
+        // Fetch profile data to include in login response
+        const profileData = await Profile.findByUserId(user.id);
+        
         res.json({ 
             message: 'Login successful', 
             token, 
             user: { 
                 id: user.id, 
                 email: user.email, 
+                full_name: user.full_name,
                 role: user.role, 
-                status: user.status 
+                status: user.status,
+                ambition_score: user.ambition_score,
+                personality_score: user.personality_score,
+                career_score: user.career_score,
+                core_values_score: user.core_values_score,
+                interests_score: user.interests_score,
+                lifestyle_score: user.lifestyle_score,
+                family_orientation_score: user.family_orientation_score,
+                // Include profile data directly in login response
+                display_name: profileData?.display_name || user.full_name || '',
+                age: profileData?.age || 0,
+                bio: profileData?.bio || '',
+                occupation: profileData?.occupation || '',
+                gender: profileData?.gender || '',
+                interests: profileData?.interests || [],
+                living_at: profileData?.living_at || '',
+                city: profileData?.city || '',
+                district: profileData?.district || '',
+                height: profileData?.height,
+                purpose: profileData?.purpose,
+                points: profileData?.points || 0,
+                current_title: profileData?.current_title || 'Newbie',
             } 
         });
     } catch (error) {

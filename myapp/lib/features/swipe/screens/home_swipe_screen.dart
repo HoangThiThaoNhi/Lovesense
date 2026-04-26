@@ -12,6 +12,7 @@ import '../../../theme.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/utils/toast_utils.dart';
 import '../../notification/providers/notification_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class HomeSwipeScreen extends ConsumerStatefulWidget {
   const HomeSwipeScreen({super.key});
@@ -113,6 +114,7 @@ class _HomeSwipeScreenState extends ConsumerState<HomeSwipeScreen> {
   Widget build(BuildContext context) {
     final swipeState = ref.watch(swipeProvider);
     final users = swipeState.users;
+    final isProfileComplete = ref.watch(authProvider).isProfileComplete;
 
     return Scaffold(
       body: Stack(
@@ -190,73 +192,21 @@ class _HomeSwipeScreenState extends ConsumerState<HomeSwipeScreen> {
                     ],
                   ),
                 ),
+                
+                // DNA Mode Selection is now inside Filter Bottom Sheet
+                const SizedBox(height: 12),
 
                 // Card Swiper
                 Expanded(
-                  child: RefreshIndicator(
+                  child: !isProfileComplete 
+                    ? _buildIncompleteProfilePrompt()
+                    : RefreshIndicator(
                     onRefresh: () => ref.read(swipeProvider.notifier).fetchDiscovery(),
                     child: swipeState.isLoading && users.isEmpty
                         ? const Center(child: CircularProgressIndicator())
                         : users.isEmpty
-                            ? SingleChildScrollView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                child: Container(
-                                  height: MediaQuery.of(context).size.height * 0.7,
-                                  padding: const EdgeInsets.all(32),
-                                  alignment: Alignment.center,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(24),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.1),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(Icons.auto_awesome_rounded, size: 80, color: Colors.white),
-                                      ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
-                                      const SizedBox(height: 32),
-                                      Text(
-                                        'Lướt hoài không thấy ưng? Để AI DNA Soulmate giúp bạn tìm nửa kia nha! 😉',
-                                        textAlign: TextAlign.center,
-                                        style: AppTextStyles.headlineSmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        swipeState.error ?? "Hãy thử mở rộng bộ lọc hoặc hoàn thành DNA Quiz để AI tìm người phù hợp nhất!",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16),
-                                      ),
-                                      const SizedBox(height: 40),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          ElevatedButton(
-                                            onPressed: () => ref.read(swipeProvider.notifier).fetchDiscovery(),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.white,
-                                              foregroundColor: AppColors.primary,
-                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                                            ),
-                                            child: const Text("Thử lại", style: TextStyle(fontWeight: FontWeight.bold)),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          ElevatedButton(
-                                            onPressed: () => context.pushNamed('dna-quiz'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.primary,
-                                              foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                                            ),
-                                            child: const Text("Làm DNA Quiz", style: TextStyle(fontWeight: FontWeight.bold)),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                            ? _buildEmptyDiscoveryState(
+                                swipeState.filter.minAge != 18 || swipeState.filter.maxAge != 100 || swipeState.filter.maxDistance != 20000 || swipeState.filter.useInterests != false
                               )
                             : CardSwiper(
                           key: ValueKey(users.map((u) => u.id).join(',')),
@@ -278,7 +228,7 @@ class _HomeSwipeScreenState extends ConsumerState<HomeSwipeScreen> {
                 ),
 
                 // Action Buttons
-                if (users.isNotEmpty)
+                if (users.isNotEmpty && isProfileComplete)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 30),
                     child: Row(
@@ -590,6 +540,144 @@ class _HomeSwipeScreenState extends ConsumerState<HomeSwipeScreen> {
             ),
             const SizedBox(height: 24),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIncompleteProfilePrompt() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 40),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.person_add_rounded, size: 80, color: Colors.white),
+          ).animate(onPlay: (c) => c.repeat(reverse: true))
+           .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 2.seconds, curve: Curves.easeInOut),
+          const SizedBox(height: 32),
+          Text(
+            'Hồ sơ của bạn còn trống',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.headlineSmall.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Nhập thông tin hồ sơ cá nhân để tìm đối tượng phù hợp và để AI có thể hiểu bạn hơn nhé! ✨',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16, height: 1.5),
+          ),
+          const SizedBox(height: 48),
+          ElevatedButton(
+            onPressed: () => context.push('/profile-setup'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              elevation: 8,
+              shadowColor: Colors.black.withOpacity(0.3),
+            ),
+            child: const Text(
+              "Hoàn tất hồ sơ ngay", 
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.3, end: 0),
+        ],
+      ),
+    );
+  }
+  Widget _buildEmptyDiscoveryState(bool hasFilter) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Container(
+        constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height * 0.6),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        alignment: Alignment.center,
+        child: GlassContainer(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.explore_off_rounded,
+                  size: 56,
+                  color: Colors.white,
+                ),
+              ).animate().shake(duration: 1.seconds).scale(duration: 600.ms, curve: Curves.easeOutBack),
+              const SizedBox(height: 20),
+              const Text(
+                'Bạn đã xem hết người dùng!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white, 
+                  fontSize: 22, 
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Đừng nản lòng. Bạn có thể làm bài test DNA để AI tìm kiếm những 'mảnh ghép' hoàn hảo nhất ẩn sâu trong hệ thống, hoặc tải thêm người dùng mới.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14, height: 1.4),
+              ),
+              const SizedBox(height: 28),
+              
+              // Suggestion Buttons
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => context.push('/dna-test'),
+                  icon: const Icon(Icons.auto_awesome, size: 20),
+                  label: const Text("Làm DNA Test ngay", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 5,
+                  ),
+                ).animate().fadeIn(delay: 200.ms).moveY(begin: 20, end: 0),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    // Always fetch new users when clicking this button
+                    ref.read(swipeProvider.notifier).fetchDiscovery();
+                    // Show a quick toast to indicate action
+                    ToastUtils.showModernToast(context, 'Đang tìm kiếm thêm...', type: ToastType.info);
+                  },
+                  icon: const Icon(Icons.person_search_rounded, size: 20),
+                  label: const Text(
+                    "Tải thêm người dùng", 
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white70, width: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ).animate().fadeIn(delay: 400.ms).moveY(begin: 20, end: 0),
+              ),
+            ],
+          ),
         ),
       ),
     );

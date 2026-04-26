@@ -53,6 +53,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _handleAuth() async {
+    if (ref.read(authProvider).isLoading) return;
+
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
@@ -69,28 +71,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
       await ref.read(authProvider.notifier).register(email, password);
     } else {
-      // Save or clear remembered account
       final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
         await prefs.setString('remembered_email', email);
       } else {
         await prefs.remove('remembered_email');
       }
-      
       await ref.read(authProvider.notifier).login(email, password);
     }
 
-    final authState = ref.read(authProvider);
+    if (!mounted) return;
     
-    if (authState.error != null && mounted) {
+    final authState = ref.read(authProvider);
+    if (authState.error != null) {
       ToastUtils.showModernToast(context, authState.error!, type: ToastType.error);
-    } else if (authState.isAuthenticated && mounted) {
-      if (authState.isProfileComplete) {
-        context.go('/home');
-      } else {
-        context.go('/profile-setup');
-      }
     }
+    // Success navigation is handled automatically by GoRouter redirect listener in nav.dart
   }
 
   void _handleSocialLogin(String provider) async {

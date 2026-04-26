@@ -32,6 +32,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkLocationStatus();
+      // Force refresh profile data whenever entering this screen
+      ref.read(authProvider.notifier).fetchProfile();
+      ref.read(gamificationProvider.notifier).loadStatus();
     });
   }
 
@@ -139,7 +142,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: Column(
                     children: [
                       Text(
-                        '${user.name}, ${user.age}',
+                        '${user.name.isEmpty ? 'Thành viên mới' : user.name}${user.age > 0 ? ', ${user.age}' : ''}',
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
@@ -160,10 +163,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               children: [
                                 const Icon(Icons.work_outline, size: 14, color: Colors.blue),
                                 const SizedBox(width: 4),
-                                Text(
-                                  user.job.isNotEmpty ? user.job : 'Nghề nghiệp',
-                                  style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
+                                  Text(
+                                    user.job.isNotEmpty ? user.job : 'Chưa cập nhật nghề nghiệp',
+                                    style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
                               ],
                             ),
                           ),
@@ -299,7 +302,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                   ],
                 )
-              : Container(color: Colors.grey[300], child: const Icon(Icons.person, size: 80, color: Colors.white)),
+              : Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.grey[300]!,
+                        Colors.grey[200]!,
+                      ],
+                    ),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_a_photo_rounded, size: 64, color: AppColors.primary.withOpacity(0.3)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Chưa có ảnh hồ sơ',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
           ),
         ),
       ],

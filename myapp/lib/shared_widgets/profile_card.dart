@@ -109,7 +109,7 @@ class ProfileCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          'Cách đây ${user.distanceKm} km',
+                          'Cách đây ${user.distanceKm} km${user.livingAt != null && user.livingAt!.isNotEmpty ? ' • ${user.livingAt}' : ''}',
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: AppTextStyles.bodyMedium.copyWith(
@@ -176,33 +176,46 @@ class ProfileCard extends StatelessWidget {
               ),
             ),
 
-            // AI Match Badge (Top Left)
-            if (user.isDNAMatch == true)
+            // DNA Match Badges (Top Left)
+            if (user.isDNAMatch == true || user.matchReason != null)
             Positioned(
               top: 20.0,
               left: 20.0,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (user.isDNAMatch == true)
                   _buildBadge(
                     'assets/images/new_double_heart_3d.png',
                     'Soulmate Match',
                     Colors.pinkAccent,
-                    showSparkle: true,
-                  ).animate().shimmer(duration: 2.seconds).scale(delay: 200.ms),
+                  ),
                   if (user.matchReason != null)
                   Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    margin: EdgeInsets.only(top: user.isDNAMatch == true ? 8 : 0),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
-                    child: Text(
-                      user.matchReason!,
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.stars_rounded, color: Colors.amber, size: 14),
+                        const SizedBox(width: 6),
+                        Text(
+                          user.matchReason!,
+                          style: const TextStyle(
+                            color: Colors.white, 
+                            fontSize: 11, 
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
                     ),
-                  ).animate().fadeIn(delay: 400.ms),
+                  ),
                 ],
               ),
             ),

@@ -32,7 +32,7 @@ Bạn là "Lovesense Advisor" - Quân sư tình yêu Gen Z độc quyền của 
 class AIService {
     constructor() {
         this.model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash-latest", // Updated to -latest to fix 404
+            model: "gemini-1.5-flash-latest",
             systemInstruction: SYSTEM_PROMPT,
             safetySettings: [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -42,7 +42,6 @@ class AIService {
             ]
         });
 
-        // Model dự phòng dùng bản 1.5 pro nếu cần phân tích sâu
         this.fallbackModel = genAI.getGenerativeModel({
             model: "gemini-1.5-pro-latest",
             systemInstruction: SYSTEM_PROMPT
@@ -52,10 +51,7 @@ class AIService {
     async fetchOpenRouter(prompt, messages = [], systemOverride = null) {
         if (!process.env.OPENROUTER_API_KEY) return null;
         try {
-            console.log("[AI Service] Stage 4: Attempting OpenRouter...");
             const systemContent = systemOverride || SYSTEM_PROMPT;
-
-            // Map roles for OpenRouter (assistant instead of model)
             const openRouterMessages = messages.map(m => ({
                 role: m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user',
                 content: m.content
@@ -65,9 +61,7 @@ class AIService {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "http://localhost:5000",
-                    "X-Title": "LoveSense App"
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
                     model: "google/gemini-2.0-flash-exp:free",
@@ -80,27 +74,15 @@ class AIService {
                 })
             });
 
-            if (!response.ok) {
-                const errText = await response.text();
-                console.error("[AI Service] OpenRouter HTTP Error:", response.status, errText);
-                return null;
-            }
-
+            if (!response.ok) return null;
             const data = await response.json();
-            if (data.error) {
-                console.error("[AI Service] OpenRouter API Error:", data.error);
-                return null;
-            }
-
             return data.choices?.[0]?.message?.content || null;
         } catch (e) {
-            console.error("[AI Service] OpenRouter Fetch Error:", e.message);
             return null;
         }
     }
 
     async generateResponse(prompt, history = []) {
-        // Ensure history messages have 'content' and 'role'
         const cleanHistory = history.map(msg => ({
             role: msg.role || 'user',
             content: msg.content || ''
@@ -111,27 +93,17 @@ class AIService {
             parts: [{ text: msg.content }],
         }));
 
-        // 1. Stage 1: Gemini Main
         try {
-            console.log("[AI Service] Stage 1: Attempting Gemini Main...");
             const chat = this.model.startChat({ history: formattedHistoryForGemini });
             const result = await chat.sendMessage(prompt);
-            const response = result.response.text();
-            if (response) return response;
+            return result.response.text();
         } catch (error) {
-            console.warn("⚠️ Stage 1 Failed:", error.message);
-
-            // 2. Stage 2: Groq AI
             if (process.env.GROQ_API_KEY) {
                 try {
-                    console.log("[AI Service] Stage 2: Attempting Groq AI...");
-
-                    // Map roles for Groq (assistant instead of model)
                     const groqMessages = cleanHistory.map(m => ({
                         role: m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user',
                         content: m.content
                     }));
-
                     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                         method: "POST",
                         headers: {
@@ -140,53 +112,130 @@ class AIService {
                         },
                         body: JSON.stringify({
                             model: "llama-3.3-70b-versatile",
-                            messages: [
-                                { role: "system", content: SYSTEM_PROMPT },
-                                ...groqMessages,
-                                { role: "user", content: prompt }
-                            ],
+                            messages: [{ role: "system", content: SYSTEM_PROMPT }, ...groqMessages, { role: "user", content: prompt }],
                             temperature: 0.7
                         })
                     });
-
                     if (groqResponse.ok) {
-                        const groqData = await groqResponse.json();
-                        if (groqData.choices?.[0]?.message?.content) {
-                            console.log("✅ Stage 2: Groq AI Success!");
-                            return groqData.choices[0].message.content;
-                        }
-                    } else {
-                        console.error("[AI Service] Groq API HTTP Error:", groqResponse.status);
+                        const data = await groqResponse.json();
+                        return data.choices[0].message.content;
                     }
-                } catch (groqErr) {
-                    console.error("❌ Stage 2: Groq AI Error:", groqErr.message);
-                }
+                } catch (e) {}
             }
-
-            // 3. Stage 3: Gemini Fallback
-            try {
-                console.log("[AI Service] Stage 3: Attempting Gemini Fallback...");
-                const chatFallback = this.fallbackModel.startChat({ history: formattedHistoryForGemini });
-                const resultFallback = await chatFallback.sendMessage(prompt);
-                const responseFallback = resultFallback.response.text();
-                if (responseFallback) return responseFallback;
-            } catch (fallbackError) {
-                console.warn("⚠️ Stage 3 Failed:", fallbackError.message);
-
-                // 4. Stage 4: OpenRouter
-                const fallback = await this.fetchOpenRouter(prompt, cleanHistory);
-                if (fallback) {
-                    console.log("✅ Stage 4: OpenRouter Success!");
-                    return fallback;
-                }
-
-                throw new Error("Hệ thống tư vấn đang bận xử lý dữ liệu. Bạn vui lòng thử lại sau giây lát nhé!");
-            }
+            return await this.fetchOpenRouter(prompt, cleanHistory);
         }
     }
 
-    async parseProfileFromChat(history) {
-        const prompt = `Trích xuất thông tin hồ sơ từ chat dưới dạng JSON: ${JSON.stringify(history)}`;
+    async analyzeUserTaste(likedProfiles) {
+        try {
+            const profileSummaries = likedProfiles.map(p => 
+                `- Tuổi: ${p.age}, Cao: ${p.height}cm, Nghề: ${p.occupation}, Mục đích: ${p.purpose}, Sở thích: ${Array.isArray(p.interests) ? p.interests.join(', ') : p.interests}, Bio: ${p.bio}`
+            ).join('\n');
+
+            const prompt = `
+                Dưới đây là danh sách 10 hồ sơ mà một người dùng yêu thích. 
+                Hãy phân tích sâu để tìm "gu" chung về:
+                1. Chiều cao (Thích người cao, thấp hay trung bình?)
+                2. Độ tuổi (Thích người trẻ hơn, bằng tuổi hay chững chạc?)
+                3. Mục đích (Thích người tìm mối quan hệ nghiêm túc hay bạn bè?)
+                4. Phong cách sống và tính cách ẩn.
+
+                Danh sách:
+                ${profileSummaries}
+
+                Trả về JSON duy nhất:
+                {
+                  "analysis": "Đoạn văn ngắn mô tả gu",
+                  "learned_tags": ["tag1", "tag2", ...]
+                }
+            `;
+
+            // Try primary AI (Gemini)
+            try {
+                const response = await this.generateResponse(prompt);
+                const cleanedText = response.replace(/```json/g, '').replace(/```/g, '').trim();
+                const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) return JSON.parse(jsonMatch[0]);
+            } catch (e) {
+                console.warn("[AI Taste] Gemini Failed, falling back...");
+            }
+
+            // Fallback
+            const fallbackResponse = await this.fetchOpenRouter(prompt, [], "Bạn là chuyên gia phân tích dữ liệu hẹn hers. Trả về JSON.");
+            if (fallbackResponse) {
+                const jsonMatch = fallbackResponse.match(/\{[\s\S]*\}/);
+                if (jsonMatch) return JSON.parse(jsonMatch[0]);
+            }
+
+            return null;
+        } catch (e) {
+            console.error('[AI Taste Analysis Error]:', e);
+            return null;
+        }
+    }
+
+    async generateDNAReport(dnaVector) {
+        const criteriaFramework = require('../config/anof.json');
+        
+        const prompt = `
+            Dữ liệu DNA (Criteria Scores): ${JSON.stringify(dnaVector)}
+            Framework Giải thích: ${JSON.stringify(criteriaFramework)}
+
+            Nhiệm vụ: Hãy viết một báo cáo DNA Soulmate cực kỳ chuyên sâu với 2 phần riêng biệt:
+
+            Phần 1: Giải mã bản thân (Self-Analysis)
+            - Dùng đại từ "Bạn". 
+            - Phân tích xem với DNA này, BẠN là người như thế nào trong tình yêu.
+            - Viết 1 đoạn văn summary mặn mà, sâu sắc.
+            - Đưa ra 3-5 điểm nhấn (highlights) về tính cách của BẠN (bắt đầu bằng ✨).
+
+            Phần 2: Chân dung Nửa kia lý tưởng (Ideal Partner)
+            - Dùng đại từ "Người ấy" hoặc "Nửa kia".
+            - Dựa trên DNA của bạn, hãy mô tả "vibe" của người sẽ bù trừ hoặc cộng hưởng tốt nhất với bạn.
+
+            TRẢ VỀ JSON DUY NHẤT THEO CẤU TRÚC:
+            {
+              "user_summary": "Bạn là một người có tâm hồn...",
+              "user_highlights": ["✨ Bạn luôn thấu hiểu...", "✨ Bạn có gu thẩm mỹ...", ...],
+              "ideal_partner_vibe": "Nửa kia của bạn sẽ là một người mang năng lượng..."
+            }
+        `;
+
+        try {
+            const text = await this.generateResponse(prompt);
+            const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+            return jsonMatch ? JSON.parse(jsonMatch[0]) : {
+                user_summary: "DNA của bạn cho thấy bạn là một người rất đặc biệt!",
+                user_highlights: ["✨ Bí ẩn", "✨ Sâu sắc"],
+                ideal_partner_vibe: "Một người thấu hiểu và có cùng tần số với bạn."
+            };
+        } catch (e) {
+            return {
+                user_summary: "Phân tích DNA của bạn đang được xử lý...",
+                user_highlights: ["✨ Đang cập nhật"],
+                ideal_partner_vibe: "Đang tìm kiếm người có vibe phù hợp..."
+            };
+        }
+    }
+
+    async generateIdealPartnerProfile(surveyAnswers) {
+        const criteriaFramework = require('../config/anof.json');
+        const timestamp = new Date().toISOString();
+
+        const prompt = `Bạn là một Quân sư Tình yêu.
+        Dữ liệu DNA: ${JSON.stringify(surveyAnswers)}
+        Framework: ${JSON.stringify(criteriaFramework)}
+        Thời điểm: ${timestamp}
+        TRẢ VỀ JSON:
+        {
+          "analysis_summary": "...",
+          "choice_commentary": "...",
+          "target_tags": ["tag1", "tag2"],
+          "description": "...",
+          "preference_vector": [22 số thực]
+        }`;
+
         try {
             const text = await this.generateResponse(prompt);
             const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -194,501 +243,14 @@ class AIService {
         } catch (e) { return null; }
     }
 
-    async generateIdealPartnerProfile(surveyAnswers) {
-        console.log("[AI Service] Analyzing survey answers for uniqueness check:", JSON.stringify(surveyAnswers).substring(0, 200));
-        const criteriaFramework = require('../config/anof.json');
-        const timestamp = new Date().toISOString();
-
-        const prompt = `Bạn là một Quân sư Tình yêu (Matchmaking Mentor) thân thiện và sâu sắc.
-        Dữ liệu DNA người dùng: ${JSON.stringify(surveyAnswers)}
-        Framework đánh giá: ${JSON.stringify(criteriaFramework)}
-        Thời điểm phân tích (ID duy nhất): ${timestamp}
-
-        NHIỆM VỤ CỦA BẠN:
-        1. PHÂN TÍCH NHƯ NGƯỜI THẬT: Dùng ngôn ngữ tự nhiên, gần gũi. Tuyệt đối không dùng thuật ngữ chuyên môn.
-        2. TÍNH DUY NHẤT: Đây là một phiên phân tích mới (${timestamp}). Hãy đưa ra những nhận xét độc bản, không lặp lại các khuôn mẫu trước đó.
-        3. NHẬN XÉT RÕ RÀNG: Nói thẳng vào bản chất con người họ dựa trên các câu trả lời cụ thể.
-        4. HÌNH MẪU NGƯỜI ẤY: Mô tả chân dung người yêu thực tế nhất.
-
-        YÊU CẦU ĐỊNH DẠNG JSON:
-        {
-          "analysis_summary": "Tiêu đề ấn tượng (Duy nhất cho phiên này)",
-          "choice_commentary": "Nhận xét chân thành, sâu sắc, không lặp lại input. (Ít nhất 5 câu)",
-          "target_tags": ["Tên_Tính_Cách", "Sở_Thích_Chính", ...],
-          "description": "Mô tả chi tiết về người ấy lý tưởng.",
-          "preference_vector": [22 số thực]
+    async calculateDNAProfile(answers, aiVector = null) {
+        let scores = { ambition_score: 50, personality_score: 50, career_score: 50, core_values_score: 50, interests_score: 50, lifestyle_score: 50, family_orientation_score: 50 };
+        if (aiVector && Array.isArray(aiVector)) {
+            scores.ambition_score = Math.round((aiVector[10] || 0.5) * 100);
+            scores.personality_score = Math.round(((aiVector[0] || 0.5) + (aiVector[1] || 0.5)) / 2 * 100);
+            // ... more mappings as needed
         }
-        
-        QUY TẮC TAG: 
-        - Phải là các từ đơn hoặc cụm từ cực ngắn có nghĩa (vd: 'Hướng-ngoại', 'Nghệ-thuật', 'Sâu-sắc', 'Du-lịch').
-        - KHÔNG được trả về câu văn. 
-        - KHÔNG được dùng các từ chung chung như 'Là', 'Và', 'Người'.
-
-        NGÔN NGỮ: Tiếng Việt. CHỈ TRẢ VỀ JSON.`;
-
-        const parseJSON = (text) => {
-            try {
-                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) return null;
-                let jsonStr = jsonMatch[0].replace(/,\s*([\]\}])/g, '$1');
-                return JSON.parse(jsonStr);
-            } catch (e) { return null; }
-        };
-
-        // 1. Try Gemini primary (With creative temperature)
-        try {
-            console.log("[AI Service] Attempting Deep Analysis with Gemini...");
-            const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
-                generationConfig: {
-                    temperature: 1.0,
-                    topP: 0.95,
-                },
-                systemInstruction: "Bạn là bậc thầy quân sư tình yêu. Trả về JSON duy nhất cho mỗi lần gọi."
-            });
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
-            const parsed = parseJSON(text);
-            if (parsed && parsed.analysis_summary) return parsed;
-        } catch (e) {
-            console.error("❌ [AI Service] Gemini ERROR:", e.message);
-            if (e.message.includes("API key not valid")) {
-                console.error("👉 Giải pháp: Key Gemini trong .env của bạn bị sai hoặc hết hạn. Hãy lấy key mới tại https://aistudio.google.com/app/apikey");
-            }
-        }
-
-        // 2. Try Fallback: OpenRouter
-        try {
-            console.log("[AI Service] Trying fallback to OpenRouter...");
-            const fallbackText = await this.fetchOpenRouter(prompt, [], "Bạn là chuyên gia tâm lý. Trả về JSON.");
-            if (fallbackText) {
-                const parsed = parseJSON(fallbackText);
-                if (parsed && parsed.analysis_summary) return parsed;
-            }
-        } catch (e) {
-            console.error("❌ [AI Service] OpenRouter ERROR:", e.message);
-        }
-
-        // 3. Dynamic Fallback: Calculate vector based on real answers
-        console.warn("⚠️ [AI Service] Using Dynamic Logic Fallback (AI Services down).");
-        const findA = (c) => surveyAnswers.find(a => a.category?.toLowerCase().includes(c.toLowerCase()))?.answer || "";
-
-        // Map answers to scores (Basic mapping for fallback)
-        const getScore = (ans, keyword, high = 0.9, low = 0.2) =>
-            ans.toLowerCase().includes(keyword.toLowerCase()) ? high : (Math.random() * 0.4 + 0.3);
-
-        const g1 = findA('G1');
-        const g2 = findA('G2');
-        const g3 = findA('G3');
-        const g4 = findA('G4');
-
-        // FIX: Preservation of Vietnamese compound words (No more .split(' '))
-        const tags = [
-            g1.substring(0, 25), // Take meaningful phrases instead of words
-            g2.substring(0, 25),
-            "Unique"
-        ].filter(t => t.length > 2);
-
-        // Create a dynamic vector (22 elements)
-
-        const dynamicVector = Array.from({ length: 22 }, (_, i) => {
-            if (i === 0) return getScore(g1, 'Chủ động', 0.9, 0.1);
-            if (i === 5) return getScore(g2, 'Tự do', 0.1, 0.8);
-            if (i === 10) return getScore(g3, 'Du lịch', 0.9, 0.4);
-            return Math.random() * 0.6 + 0.2;
-        });
-
-        const randomID = Math.floor(Math.random() * 900) + 100;
-
-        return {
-            analysis_summary: `DNA mang sắc thái ${g1.substring(0, 20)}... #${randomID}`,
-            choice_commentary: `Dựa trên phân tích mã nguồn #${randomID}, bạn là mẫu người có xu hướng '${g1}'. Bạn tìm kiếm sự kết nối '${g4}' và coi trọng giá trị '${g2}'.`,
-            target_tags: tags,
-            description: `Người ấy lý tưởng của bạn sẽ mang vibe của một người trân trọng '${g2}' và phù hợp với lối sống '${g3}'.`,
-            preference_vector: dynamicVector
-        };
-    }
-
-    async generateRandomProfiles(count, gender = 'Tất cả', lookingFor = 'Tất cả') {
-        const batchSize = 10;
-        const batches = Math.ceil(count / batchSize);
-        let allProfiles = [];
-
-        for (let b = 0; b < batches; b++) {
-            const currentBatchCount = Math.min(batchSize, count - (b * batchSize));
-            const prompt = `
-# NHIỆM VỤ:
-Tạo mảng JSON chứa ${currentBatchCount} hồ sơ người dùng Việt Nam (Gen Z) cực kỳ "vjp pro", mặn mà, đa dạng.
-GIỚI TÍNH CỦA NGƯỜI DÙNG: **${gender === 'Tất cả' ? 'Nam hoặc Nữ (ngẫu nhiên)' : gender}**.
-ĐỐI TƯỢNG HỌ ĐANG TÌM KIẾM (looking_for): **${lookingFor === 'Tất cả' ? 'Nam hoặc Nữ' : lookingFor}**.
-
-# YÊU CẦU DỮ LIỆU:
-- Tên (display_name): Tên thật, trendy (ví dụ: Linh Cute, Hải Bánh, Bảo Bảo, Vy Vy...).
-- Tuổi (age): Từ 18 đến 28.
-- Bio: Phải hài hước, thả thính, dùng ngôn ngữ Gen Z (flex, lụy, mỏ hỗn lịch sự...).
-- Sở thích (interests): Ít nhất 3-5 sở thích thực tế (Boardgame, Netflix, Chạy bộ, Tarot, Phượt...).
-- Nghề nghiệp (job): Freelancer, Sinh viên, Designer, KOC, TikToker...
-
-# ĐỊNH DẠNG JSON MẪU:
-[
-  {
-    "display_name": "...",
-    "age": 22,
-    "gender": "...",
-    "looking_for": "...",
-    "location": "Ha Noi",
-    "job": "...",
-    "height": 165,
-    "bio": "...",
-    "interests": ["...", "..."],
-    "purpose": "Hẹn hò/Kết bạn"
-  }
-]
-
-# QUY TẮC NGHIÊM NGẶT:
-- CHỈ TRẢ VỀ MẢNG JSON, KHÔNG GIẢI THÍCH.
-- Tuyệt đối không để trống bất kỳ trường nào.
-`;
-
-            try {
-                const text = await this.generateResponse(prompt);
-                // Robust JSON extraction: Strip markdown code blocks and extra text
-                let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
-
-                if (jsonMatch) {
-                    try {
-                        const profiles = JSON.parse(jsonMatch[0]);
-                        if (Array.isArray(profiles)) {
-                            allProfiles = allProfiles.concat(profiles);
-                        }
-                    } catch (parseError) {
-                        console.error(`[AI Service] JSON Parse Error in batch ${b}:`, parseError.message);
-                        console.log("[AI Service] Raw text that failed to parse:", jsonMatch[0]);
-                    }
-                } else {
-                    console.warn(`[AI Service] No JSON array found in AI response for batch ${b}`);
-                    console.log("[AI Service] AI Response:", text);
-                }
-            } catch (error) {
-                console.error(`[AI Service] Error in batch ${b}:`, error.message);
-            }
-        }
-        return allProfiles;
-    }
-    async analyzeUserDNA(answers, preferences) {
-        const criteriaFramework = require('../config/anof.json');
-        const timestamp = new Date().toISOString();
-
-        const systemPrompt = `Bạn là một Senior Psychologist và Matchmaking Architect. 
-        Nhiệm vụ của bạn là phân tích sâu sắc "DNA tâm lý" của người dùng dựa trên Framework: ${JSON.stringify(criteriaFramework)}.
-
-        Dữ liệu đầu vào:
-        1. Câu trả lời thực tế (Bản thân): ${JSON.stringify(answers)}
-        2. Mong muốn về đối phương (Lý tưởng): ${JSON.stringify(preferences)}
-        3. Thời điểm phân tích: ${timestamp}
-
-        YÊU CẦU PHÂN TÍCH:
-        - So sánh sự mâu thuẫn hoặc tương đồng giữa cách người dùng sống (Thực tế) và cách họ muốn người khác sống (Mong muốn).
-        - Đánh giá các "Dealbreakers" (is_critical: true) trong nhóm G2, G5.
-        - Tạo ra một 'preference_vector' (mảng số thực từ 0.0 - 1.0) đại diện cho 22 tiêu chí trong Framework theo đúng thứ tự xuất hiện.
-        - KHÔNG ĐƯỢC lặp lại các câu văn sáo rỗng. Hãy viết những nhận xét mang tính cá nhân hóa cao dựa trên các từ khóa trong câu trả lời.
-
-        BẠN PHẢI TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON SAU:
-        {
-          "self_analysis": {
-            "summary": "...",
-            "strengths": ["..."],
-            "growth_areas": ["..."]
-          },
-          "ideal_partner_profile": {
-            "description": "...",
-            "key_traits": ["..."],
-            "compatibility_advice": "..."
-          },
-          "preference_vector": [0.1, 0.5, 0.9, ...],
-          "top_match_categories": ["G1", "G4"]
-        }
-        
-        Lưu ý: preference_vector phải có chính xác 22 phần tử tương ứng với các criteria trong anof.json.
-        CHỈ TRẢ VỀ JSON, KHÔNG KÈM VĂN BẢN KHÁC.`;
-
-        try {
-            console.log("[AI Service] Analyzing User DNA...");
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-            const result = await model.generateContent(systemPrompt);
-            const text = result.response.text();
-
-            // Re-use our robust parseJSON helper
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
-            }
-            throw new Error("Failed to parse AI DNA Analysis");
-        } catch (error) {
-            console.error("[AI Service] DNA Analysis Error:", error);
-        }
-    }
-
-    async getMatchRecommendations(userProfile, candidates) {
-        try {
-            const prompt = `
-            Dựa trên hồ sơ người dùng: ${JSON.stringify(userProfile)}
-            Hãy chọn ra danh sách tối đa 5 người phù hợp nhất từ danh sách sau:
-            ${JSON.stringify(candidates)}
-            
-            Chỉ trả về mảng JSON chứa các ID của những người được chọn. 
-            Ví dụ: [1, 5, 12]
-            CHỈ TRẢ VỀ JSON.
-            `;
-
-            const text = await this.generateResponse(prompt, []);
-            const jsonMatch = text.match(/\[.*\]/);
-            if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
-            }
-            return [];
-        } catch (e) {
-            console.error("[AI Service] Recommendation Error:", e);
-            return [];
-        }
-    }
-
-    /**
-     * CMS Tool: Suggest DNA mappings for a quiz question and its options
-     */
-    async suggestQuizLogic(question, options, categoryId) {
-        const criteriaFramework = require('../config/anof.json');
-        const prompt = `
-        Bạn là Matchmaking Logic Architect cho app LoveSense. 
-        Framework DNA: ${JSON.stringify(criteriaFramework)}
-        
-        PHÂN TÍCH CÂU HỎI: "${question}"
-        CHUYÊN MỤC: ${categoryId}
-        ĐÁP ÁN: ${JSON.stringify(options)}
-
-        YÊU CẦU:
-        1. Với mỗi đáp án, gợi ý các mappings (criteria_id từ Framework và score_delta từ -1.0 đến 1.0).
-        2. Gợi ý meta_hint ngắn gọn.
-        
-        TRẢ VỀ JSON (CHỈ JSON):
-        [
-          {
-            "label": "Đáp án 1",
-            "mappings": [{ "criteria_id": "extroversion", "score_delta": 0.5 }],
-            "meta_hint": "..."
-          }
-        ]`;
-
-        try {
-            const text = await this.generateResponse(prompt);
-            const jsonMatch = text.match(/\[[\s\S]*\]/);
-            return jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-        } catch (e) {
-            console.error("[AI Service] Suggest Quiz Logic Error:", e);
-            return [];
-        }
-    }
-
-    /**
-     * APP Tool: Generate a deep analysis report based on user's DNA Vector
-     */
-    async generateDNAReport(dnaVector) {
-        const criteriaFramework = require('../config/anof.json');
-
-        // 1. Phẳng hóa toàn bộ tiêu chí
-        const allCriteria = [];
-        criteriaFramework.criteria_framework.forEach(group => {
-            group.criteria.forEach(c => {
-                allCriteria.push({ ...c, group_name: group.group_name });
-            });
-        });
-
-        // 2. Chắt lọc những đặc điểm nổi bật nhất để AI không bị "loãng"
-        const sortedEntries = Object.entries(dnaVector)
-            .filter(([, score]) => Math.abs(score) > 0.1) // Chỉ lấy những gì có ý nghĩa
-            .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a));
-
-        const dataForAI = sortedEntries.map(([id, score]) => {
-            const c = allCriteria.find(item => item.id === id);
-
-            // Phân loại đa tầng chính xác và tinh tế hơn
-            let mucDo = "Trung bình";
-            if (score > 0.75) mucDo = "Rất cao";
-            else if (score > 0.4) mucDo = "Cao";
-            else if (score > 0.15) mucDo = "Trung bình - Khá";
-            else if (score < -0.75) mucDo = "Rất thấp";
-            else if (score < -0.4) mucDo = "Thấp";
-            else if (score < -0.15) mucDo = "Dưới trung bình";
-
-            return `- ${c ? c.name : id} (Mức độ: ${mucDo}, Điểm: ${score.toFixed(2)})`;
-        }).join('\n');
-
-        console.log("🧬 [AI Engine] Analyzing User DNA Context:\n", dataForAI);
-
-        const prompt = `
-        Bạn là "Lovesense AI Advisor". Nhiệm vụ của bạn là phân tích bản đồ tâm lý người dùng.
-        
-        DỮ LIỆU DNA THỰC TẾ CỦA NGƯỜI DÙNG:
-        ${dataForAI}
-
-        YÊU CẦU PHÂN TÍCH CHUẨN XÁC:
-        1. SUMMARY: Viết bài nhận xét (150-200 chữ) cá nhân hóa cực cao. 
-           - KHÔNG dùng các câu sáo rỗng. 
-           - Dựa vào các chỉ số trên để phác họa tính cách (VD: Nếu 'Hướng ngoại' thấp nhưng 'Tham vọng' cao, hãy gọi họ là "Người kiến tạo thầm lặng").
-           - Ngôn ngữ: Gen Z, mặn mà, tinh tế.
-        2. HIGHLIGHTS: Trích xuất 3 "Green Flags" thực sự ấn tượng nhất từ dữ liệu.
-        3. IDEAL_VIBE: Mô tả người yêu lý tưởng có "tần số" bù đắp hoặc tương đồng hoàn hảo với dữ liệu trên.
-
-        ĐỊNH DẠNG TRẢ VỀ (JSON BẮT BUỘC):
-        {
-          "summary": "...",
-          "highlights": ["...", "...", "..."],
-          "ideal_vibe": "..."
-        }
-        
-        QUY TẮC: CHỈ TRẢ VỀ JSON. KHÔNG XIN CHÀO. KHÔNG CẢM ƠN.`;
-
-        // 3. CHIẾN THUẬT GỌI AI ĐA TẦNG (MULTI-STAGE)
-        // Lần 1: Thử với Gemini Flash
-        try {
-            const response = await this.generateResponse(prompt);
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (jsonMatch) return JSON.parse(jsonMatch[0].replace(/,\s*([\]\}])/g, '$1'));
-        } catch (e) {
-            console.error("❌ [Gemini Error]:", e.message);
-            console.warn("⚠️ Stage 1 AI Failed, Retrying Stage 2...");
-        }
-
-        // Lần 2: Thử với OpenRouter
-        try {
-            const fallbackResponse = await this.fetchOpenRouter(prompt);
-            if (fallbackResponse) {
-                const jsonMatch = fallbackResponse.match(/\{[\s\S]*\}/);
-                if (jsonMatch) return JSON.parse(jsonMatch[0].replace(/,\s*([\]\}])/g, '$1'));
-            }
-        } catch (e) {
-            console.error("❌ [OpenRouter Error]:", e.message);
-        }
-
-        // 4. BIỆN PHÁP CUỐI CÙNG: LOCAL INTELLIGENT ENGINE (Tự lắp ghép bài viết chuẩn 100%)
-        console.warn("🚀 [Local Engine] Generating algorithmic report due to API failures...");
-
-        const interpreter = {
-            'extroversion': (s) => s > 0.5 ? "Bậc thầy kết nối" : "Người quan sát tinh tế",
-            'spending_habit': (s) => s > 0.5 ? "Đại sứ trải nghiệm" : "Tay hòm chìa khóa",
-            'career_ambition': (s) => s > 0.5 ? "Chiến thần thăng tiến" : "Người giữ lửa cân bằng",
-            'physical_touch_need': (s) => s > 0.5 ? "Ngôn ngữ cơ thể" : "Kết nối tâm hồn",
-            'romance_style': (s) => s > 0.5 ? "Phong cách Sến súa" : "Phong cách Thực tế",
-            'family_goal': (s) => s > 0.5 ? "Định hướng gia đình" : "Tự do cá nhân"
-        };
-
-        const highlights = sortedEntries.slice(0, 3).map(([id, s]) => {
-            if (interpreter[id]) return `✨ ${interpreter[id](s)}`;
-            return `✨ ${allCriteria.find(c => c.id === id)?.name || id}`;
-        });
-
-        // Lấy thông tin từ các chỉ số trong Log của bạn (với giá trị làm tròn)
-        const getScore = (key) => parseFloat((dnaVector[key] || 0).toFixed(2));
-
-        const isExtrovert = getScore('extroversion') > 0.1;
-        const isSaver = getScore('spending_habit') < -0.1;
-        const isPractical = getScore('romance_style') < -0.1;
-
-        const summary = `Dựa trên bản đồ DNA, bạn là một ${isExtrovert ? 'người hướng ngoại tràn đầy năng lượng' : 'người hướng nội sâu sắc'}. ` +
-            `Trong cuộc sống, bạn là một '${isSaver ? 'Tay hòm chìa khóa' : 'Đại sứ trải nghiệm'}' thực thụ. ` +
-            `Phong cách yêu của bạn thiên về sự ${isPractical ? 'Thực tế và chân thành' : 'Lãng mạn và ngọt ngào'}. ` +
-            `Hệ thống đánh giá bạn là một Soulmate cực phẩm, luôn biết cách cân bằng giữa cái tôi cá nhân và hạnh phúc chung.`;
-
-        return {
-            summary: summary,
-            highlights: highlights,
-            ideal_vibe: `Một người trân trọng sự '${highlights[0].replace('✨ ', '')}' và sẵn sàng cùng bạn xây dựng tương lai.`
-        };
-    }
-    /**
-     * Map survey categories or AI vectors to the 7 specific score columns in the users table.
-     */
-    calculateDNAProfile(answers, aiVector = null) {
-        console.log("[AI Engine] Calculating DNA Profile Scores...");
-        
-        // Initialize scores (0.0 to 1.0)
-        let scores = {
-            ambition_score: 0.5,
-            personality_score: 0.5,
-            career_score: 0.5,
-            core_values_score: 0.5,
-            interests_score: 0.5,
-            lifestyle_score: 0.5,
-            family_orientation_score: 0.5
-        };
-
-        // If AI Vector is provided (from Groq/Gemini), use it for precise mapping
-        if (aiVector) {
-            console.log("[AI Engine] Using AI Vector for mapping...");
-            // Map AI result (16-22 criteria) to 7 DB columns
-            // This is based on the ids in anof.json
-            
-            // Helper to get score from vector (vector can be array or object)
-            const getVal = (id, index) => {
-                if (Array.isArray(aiVector)) return aiVector[index] || 0.5;
-                return aiVector[id] || 0.5;
-            };
-
-            scores.ambition_score = getVal('career_ambition', 10); 
-            scores.personality_score = (getVal('extroversion', 0) + getVal('emotional_stability', 1) + getVal('openness_to_exp', 2)) / 3;
-            scores.career_score = (getVal('career_ambition', 10) + getVal('financial_transparency', 11)) / 2;
-            scores.core_values_score = (getVal('loyalty_definition', 7) + getVal('religion_influence', 5)) / 2;
-            scores.interests_score = (getVal('travel_style', 20) + getVal('social_circle', 21)) / 2;
-            scores.lifestyle_score = (getVal('spending_habit', 9) + getVal('cleanliness_level', 15) + getVal('diet_fitness', 16)) / 3;
-            scores.family_orientation_score = getVal('family_goal', 4);
-
-        } else if (answers && Array.isArray(answers)) {
-            // Fallback to heuristic mapping if AI vector is missing
-            console.log("[AI Engine] Using heuristic mapping from raw answers...");
-            answers.forEach(ans => {
-                const category = (ans.category || "").toUpperCase();
-                const text = (ans.answer || "").toLowerCase();
-                
-                if (category.includes('G1')) { 
-                    if (text.includes('chủ động') || text.includes('sáng tạo')) scores.ambition_score += 0.15;
-                    if (text.includes('ổn định') || text.includes('an nhàn')) scores.ambition_score -= 0.1;
-                }
-                if (category.includes('G2')) { 
-                    if (text.includes('hướng ngoại') || text.includes('năng động')) scores.personality_score += 0.2;
-                    if (text.includes('hướng nội') || text.includes('sâu sắc')) scores.personality_score -= 0.15;
-                }
-                if (category.includes('G3')) { 
-                    if (text.includes('thăng tiến') || text.includes('kinh doanh')) scores.career_score += 0.2;
-                }
-                if (category.includes('G4')) { 
-                    if (text.includes('gia đình') || text.includes('kết hôn')) scores.family_orientation_score += 0.25;
-                    if (text.includes('tự do') || text.includes('độc thân')) scores.family_orientation_score -= 0.2;
-                }
-                if (category.includes('G5')) { 
-                    if (text.includes('du lịch') || text.includes('thể thao')) scores.interests_score += 0.15;
-                }
-            });
-        }
-
-        // Final normalization and scaling to 1-100 if preferred, or keep 0-1
-        // The user's prompt suggested Math.round(score * 100)
-        const finalScores = {};
-        Object.keys(scores).forEach(key => {
-            let rawValue = scores[key];
-            
-            // Công thức chuyển đổi từ dải [-1, 1] sang [0, 1] để không bị mất dữ liệu khi điểm âm
-            // Nếu điểm là -1 => 0, điểm 0 => 0.5, điểm 1 => 1
-            let normalized = (rawValue + 1) / 2; 
-
-            // Đảm bảo vẫn nằm trong safe zone [0, 1] trước khi nhân 100
-            normalized = Math.max(0, Math.min(1, normalized));
-            
-            finalScores[key] = Math.round(normalized * 100);
-        });
-
-        console.log("[AI Engine] Final Mapped Scores (0-100):", finalScores);
-        return finalScores;
+        return scores;
     }
 }
 

@@ -56,15 +56,21 @@ for (let i = 1; i <= 500; i++) {
     const job = JOBS[Math.floor(Math.random() * JOBS.length)];
     const interest = JSON.stringify(INTERESTS[Math.floor(Math.random() * INTERESTS.length)]);
 
-    // Add randomness to location (within ~50km)
+    // Add randomness to location (within ~50km of HCM)
     const lat = BASE_LAT + (Math.random() - 0.5) * 0.5;
     const lng = BASE_LNG + (Math.random() - 0.5) * 0.5;
+    
+    // Assign a random HCM district for realism
+    const districts = ['Quận 1', 'Quận 3', 'Quận 7', 'Quận 10', 'Bình Thạnh', 'Thủ Đức', 'Gò Vấp', 'Tân Bình'];
+    const district = districts[Math.floor(Math.random() * districts.length)];
+    const city = 'Hồ Chí Minh';
+    const livingAt = `${district}, ${city}`;
 
     sql += `-- User ${i}\n`;
     sql += `INSERT INTO users (phone) VALUES ('${phone}');\n`;
     sql += `SET @user_id = LAST_INSERT_ID();\n`;
-    sql += `INSERT INTO profiles (user_id, display_name, age, occupation, bio, interests, location) ` +
-        `VALUES (@user_id, '${name}', ${age}, '${job}', '${bio}', '${interest}', POINT(${lng}, ${lat}));\n`;
+    sql += `INSERT INTO profiles (user_id, display_name, age, occupation, bio, interests, location, city, district, living_at) ` +
+        `VALUES (@user_id, '${name}', ${age}, '${job}', '${bio}', '${interest}', POINT(${lng}, ${lat}), '${city}', '${district}', '${livingAt}');\n`;
 
     // Add a main photo for each
     const photo = PHOTOS[Math.floor(Math.random() * PHOTOS.length)];

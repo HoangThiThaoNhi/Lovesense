@@ -136,34 +136,50 @@ class GamificationStatus {
   });
 
   factory GamificationStatus.fromJson(Map<String, dynamic> json) {
-    final profile = json['profile'] as Map<String, dynamic>? ?? {};
-    
-    final List<BadgeModel> badgeList = (json['badges'] as List? ?? [])
-        .map((b) => BadgeModel.fromJson(b as Map<String, dynamic>))
-        .toList();
-        
-    final List<PointHistoryEntry> historyList = (json['history'] as List? ?? [])
-        .map((h) => PointHistoryEntry.fromJson(h as Map<String, dynamic>))
-        .toList();
-        
-    final List<ChallengeModel> challengeList = (json['challenges'] as List? ?? [])
-        .map((c) => ChallengeModel.fromJson(c as Map<String, dynamic>))
-        .toList();
-
     try {
+      final profileMap = json['profile'];
+      final Map<String, dynamic> profile = (profileMap is Map) ? Map<String, dynamic>.from(profileMap) : {};
+      
+      // Defensively parse lists
+      final List<BadgeModel> badgeList = [];
+      if (json['badges'] is List) {
+        for (var item in json['badges']) {
+          if (item is Map) {
+            badgeList.add(BadgeModel.fromJson(Map<String, dynamic>.from(item)));
+          }
+        }
+      }
+          
+      final List<PointHistoryEntry> historyList = [];
+      if (json['history'] is List) {
+        for (var item in json['history']) {
+          if (item is Map) {
+            historyList.add(PointHistoryEntry.fromJson(Map<String, dynamic>.from(item)));
+          }
+        }
+      }
+          
+      final List<ChallengeModel> challengeList = [];
+      if (json['challenges'] is List) {
+        for (var item in json['challenges']) {
+          if (item is Map) {
+            challengeList.add(ChallengeModel.fromJson(Map<String, dynamic>.from(item)));
+          }
+        }
+      }
+  
       return GamificationStatus(
         points: int.tryParse(profile['points']?.toString() ?? '0') ?? 0,
-        currentTitle: profile['current_title'] as String? ?? 'Newbie',
+        currentTitle: profile['current_title']?.toString() ?? 'Newbie',
         badges: badgeList,
         history: historyList,
         challenges: challengeList,
         unusedVouchersCount: int.tryParse(json['unusedVouchersCount']?.toString() ?? '0') ?? 0,
       );
-    } catch (e) {
-      print('DEBUG: Error parsing GamificationStatus: $e');
-      print('DEBUG: Profile data: $profile');
-      print('DEBUG: Full JSON: $json');
-      rethrow;
+    } catch (e, stack) {
+      print('DEBUG ERROR: GamificationStatus.fromJson failed: $e');
+      print(stack);
+      return GamificationStatus.empty();
     }
   }
 

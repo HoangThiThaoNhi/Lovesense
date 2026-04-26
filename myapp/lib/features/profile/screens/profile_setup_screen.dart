@@ -7,10 +7,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../models/user_model.dart';
 import '../../../shared_widgets/gradient_button.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../providers/gamification_provider.dart';
 import '../../../theme.dart';
 import '../../../core/utils/api_service.dart';
 import '../../../core/utils/cloudinary_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../../../core/utils/toast_utils.dart';
 
 class PhotoItem {
@@ -38,6 +40,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _jobController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _districtController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _livingController = TextEditingController();
   
   String _purpose = '';
@@ -49,47 +54,145 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final List<PhotoItem> _photos = [];
   final List<String> _deletedPhotoIds = [];
   final ImagePicker _picker = ImagePicker();
+  bool _isSaving = false;
+  double? _latitude;
+  double? _longitude;
+  bool _isFetchingLocation = false;
+
+  final Map<String, List<String>> _vietnamLocations = {
+    'Hà Nội': ['Ba Đình', 'Hoàn Kiếm', 'Tây Hồ', 'Long Biên', 'Cầu Giấy', 'Đống Đa', 'Hai Bà Trưng', 'Thanh Xuân', 'Sóc Sơn', 'Đông Anh', 'Gia Lâm', 'Nam Từ Liêm', 'Bắc Từ Liêm', 'Thanh Trì', 'Mê Linh', 'Hà Đông', 'Sơn Tây', 'Ba Vì', 'Phúc Thọ', 'Đan Phượng', 'Hoài Đức', 'Quốc Oai', 'Thạch Thất', 'Chương Mỹ', 'Thanh Oai', 'Thường Tín', 'Phú Xuyên', 'Ứng Hòa', 'Mỹ Đức'],
+    'Hồ Chí Minh': ['Quận 1', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8', 'Quận 10', 'Quận 11', 'Quận 12', 'Bình Tân', 'Bình Thạnh', 'Gò Vấp', 'Phú Nhuận', 'Tân Bình', 'Tân Phú', 'Thủ Đức', 'Bình Chánh', 'Cần Giờ', 'Củ Chi', 'Hóc Môn', 'Nhà Bè'],
+    'Đà Nẵng': ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Liên Chiểu', 'Hòa Vang', 'Cẩm Lệ', 'Hoàng Sa'],
+    'Hải Phòng': ['Hồng Bàng', 'Lê Chân', 'Ngô Quyền', 'Kiến An', 'Hải An', 'Đồ Sơn', 'Dương Kinh', 'An Dương', 'An Lão', 'Bạch Long Vĩ', 'Cát Hải', 'Kiến Thụy', 'Thủy Nguyên', 'Tiên Lãng', 'Vĩnh Bảo'],
+    'Cần Thơ': ['Ninh Kiều', 'Bình Thủy', 'Cái Răng', 'Ô Môn', 'Thốt Nốt', 'Phong Điền', 'Cờ Đỏ', 'Vĩnh Thạnh', 'Thới Lai'],
+    'An Giang': ['Long Xuyên', 'Châu Đốc', 'An Phú', 'Tân Châu', 'Phú Tân', 'Tịnh Biên', 'Tri Tôn', 'Châu Phú', 'Châu Thành', 'Thoại Sơn'],
+    'Bà Rịa - Vũng Tàu': ['Vũng Tàu', 'Bà Rịa', 'Xuyên Mộc', 'Long Điền', 'Đất Đỏ', 'Châu Đức', 'Tân Thành', 'Côn Đảo'],
+    'Bắc Giang': ['Bắc Giang', 'Yên Thế', 'Tân Yên', 'Lạng Giang', 'Lục Nam', 'Lục Ngạn', 'Sơn Động', 'Yên Dũng', 'Việt Yên', 'Hiệp Hòa'],
+    'Bắc Kạn': ['Bắc Kạn', 'Pác Nặm', 'Ba Bể', 'Ngân Sơn', 'Chợ Đồn', 'Chợ Mới', 'Na Rì'],
+    'Bạc Liêu': ['Bạc Liêu', 'Hồng Dân', 'Phước Long', 'Vĩnh Lợi', 'Giá Rai', 'Đông Hải', 'Hòa Bình'],
+    'Bắc Ninh': ['Bắc Ninh', 'Yên Phong', 'Quế Võ', 'Tiên Du', 'Từ Sơn', 'Thuận Thành', 'Gia Bình', 'Lương Tài'],
+    'Bến Tre': ['Bến Tre', 'Châu Thành', 'Chợ Lách', 'Mỏ Cày Nam', 'Giồng Trôm', 'Bình Đại', 'Ba Tri', 'Thạnh Phú', 'Mỏ Cày Bắc'],
+    'Bình Định': ['Quy Nhơn', 'An Lão', 'Hoài Nhơn', 'Hoài Ân', 'Phù Mỹ', 'Vĩnh Thạnh', 'Tây Sơn', 'Phù Cát', 'An Nhơn', 'Tuy Phước', 'Vân Canh'],
+    'Bình Dương': ['Thủ Dầu Một', 'Bàu Bàng', 'Dầu Tiếng', 'Bến Cát', 'Phú Giáo', 'Tân Uyên', 'Dĩ An', 'Thuận Uyên', 'Bắc Tân Uyên'],
+    'Bình Phước': ['Phước Long', 'Đồng Xoài', 'Bình Long', 'Chơn Thành', 'Đồng Phú', 'Bù Đăng', 'Lộc Ninh', 'Bù Đốp', 'Hớn Quản', 'Bù Gia Mập', 'Phú Riềng'],
+    'Bình Thuận': ['Phan Thiết', 'La Gi', 'Tuy Phong', 'Bắc Bình', 'Hàm Thuận Bắc', 'Hàm Thuận Nam', 'Tánh Linh', 'Đức Linh', 'Hàm Tân', 'Phú Quý'],
+    'Cà Mau': ['Cà Mau', 'U Minh', 'Thới Bình', 'Trần Văn Thời', 'Cái Nước', 'Đầm Dơi', 'Năm Căn', 'Phú Tân', 'Ngọc Hiển'],
+    'Cao Bằng': ['Cao Bằng', 'Bảo Lâm', 'Bảo Lạc', 'Thông Nông', 'Hà Quảng', 'Trà Lĩnh', 'Trùng Khánh', 'Hạ Lang', 'Quảng Uyên', 'Phục Hòa', 'Hòa An', 'Nguyên Bình', 'Thạch An'],
+    'Đắk Lắk': ['Buôn Ma Thuột', 'Buôn Hồ', 'Ea H\'leo', 'Krông Năng', 'Krông Búk', 'Ea Súp', 'Buôn Đôn', 'Cư M\'gar', 'Krông Pắc', 'Krông Bông', 'Krông Ana', 'Lắk', 'Ea Kar', 'M\'Đrắk', 'Krông Rắc'],
+    'Đắk Nông': ['Gia Nghĩa', 'Đăk Glong', 'Đăk Mil', 'Đăk Gnập', 'Đăk Song', 'Krông Nô', 'Tuy Đức'],
+    'Điện Biên': ['Điện Biên Phủ', 'Mường Lay', 'Mường Nhé', 'Mường Chà', 'Tủa Chùa', 'Tuần Giáo', 'Điện Biên', 'Điện Biên Đông', 'Mường Áng', 'Nậm Pồ'],
+    'Đồng Nai': ['Biên Hòa', 'Long Khánh', 'Tân Phú', 'Định Quán', 'Xuân Lộc', 'Thống Nhất', 'Cẩm Mỹ', 'Long Thành', 'Nhơn Trạch', 'Vĩnh Cửu', 'Trảng Bom'],
+    'Đồng Tháp': ['Cao Lãnh', 'Sa Đéc', 'Hồng Ngự', 'Tân Hồng', 'Tháp Mười', 'Thanh Bình', 'Lấp Vò', 'Lai Vung'],
+    'Gia Lai': ['Pleiku', 'An Khê', 'Ayun Pa', 'Chư Păh', 'Chư Prông', 'Chư Sê', 'Đức Cơ', 'Ia Grai', 'Kbang', 'Kông Chro', 'Krông Pa', 'Mang Yang', 'Ia Pa', 'Đăk Pơ', 'Chư Pưh'],
+    'Hà Giang': ['Hà Giang', 'Đồng Văn', 'Mèo Vạc', 'Yên Minh', 'Quản Bạ', 'Vị Xuyên', 'Bắc Mê', 'Hoàng Su Phì', 'Xín Mần', 'Bắc Quang', 'Quang Bình'],
+    'Hà Nam': ['Phủ Lý', 'Duy Tiên', 'Kim Bảng', 'Thanh Liêm', 'Bình Lục', 'Lý Nhân'],
+    'Hà Tĩnh': ['Hà Tĩnh', 'Hồng Lĩnh', 'Kỳ Anh', 'Hương Sơn', 'Đức Thọ', 'Vũ Quang', 'Nghi Xuân', 'Can Lộc', 'Hương Khê', 'Thạch Hà', 'Cẩm Xuyên', 'Lộc Hà'],
+    'Hải Dương': ['Hải Dương', 'Chí Linh', 'Nam Sách', 'Kinh Môn', 'Kim Thành', 'Thanh Hà', 'Cẩm Giàng', 'Bình Giang', 'Gia Lộc', 'Tứ Kỳ', 'Ninh Giang', 'Thanh Miện'],
+    'Hậu Giang': ['Vị Thanh', 'Ngã Bảy', 'Châu Thành', 'Châu Thành A', 'Long Mỹ', 'Phụng Hiệp', 'Vị Thủy'],
+    'Hòa Bình': ['Hòa Bình', 'Đà Bắc', 'Kỳ Sơn', 'Lương Sơn', 'Kim Bôi', 'Cao Phong', 'Tân Lạc', 'Mai Châu', 'Lạc Sơn', 'Yên Thủy', 'Lạc Thủy'],
+    'Hưng Yên': ['Hưng Yên', 'Văn Lâm', 'Văn Giang', 'Yên Mỹ', 'Mỹ Hào', 'Ân Thi', 'Khoái Châu', 'Kim Động', 'Tiên Lữ', 'Phù Cừ'],
+    'Khánh Hòa': ['Nha Trang', 'Cam Ranh', 'Cam Lâm', 'Vạn Ninh', 'Ninh Hòa', 'Khánh Vĩnh', 'Diên Khánh', 'Khánh Sơn', 'Trường Sa'],
+    'Kiên Giang': ['Rạch Giá', 'Hà Tiên', 'Kiên Lương', 'Hòn Đất', 'Tân Hiệp', 'Châu Thành', 'Giồng Riềng', 'Gò Quao', 'An Biên', 'An Minh', 'Vĩnh Thuận', 'Phú Quốc', 'Kiên Hải', 'U Minh Thượng', 'Giang Thành'],
+    'Kon Tum': ['Kon Tum', 'Đăk Glei', 'Ngọc Hồi', 'Đăk Tô', 'Kon Plông', 'Kon Rẫy', 'Đăk Hà', 'Sa Thầy', 'Tu Mơ Rông', 'Ia H\' Drai'],
+    'Lai Châu': ['Lai Châu', 'Tam Đường', 'Mường Tè', 'Sìn Hồ', 'Phong Thổ', 'Than Uyên', 'Tân Uyên', 'Nậm Nhùn'],
+    'Lâm Đồng': ['Đà Lạt', 'Bảo Lộc', 'Đức Trọng', 'Di Linh', 'Đơn Dương', 'Lạc Dương', 'Đạ Huoai', 'Đạ Tẻh', 'Cát Tiên', 'Lâm Hà', 'Bảo Lâm', 'Đam Rông'],
+    'Lạng Sơn': ['Lạng Sơn', 'Tràng Định', 'Bình Gia', 'Văn Lãng', 'Cao Lộc', 'Văn Quan', 'Bắc Sơn', 'Hữu Lũng', 'Chi Lăng', 'Lộc Bình', 'Đình Lập'],
+    'Lào Cai': ['Lào Cai', 'Bát Xát', 'Mường Khương', 'Si Ma Cai', 'Bắc Hà', 'Bảo Thắng', 'Bảo Yên', 'Sa Pa', 'Văn Bàn'],
+    'Long An': ['Tân An', 'Kiến Tường', 'Tân Hưng', 'Vĩnh Hưng', 'Mộc Hóa', 'Tân Thạnh', 'Thạnh Hóa', 'Đức Huệ', 'Đức Hòa', 'Bến Lức', 'Thủ Thừa', 'Tân Trụ', 'Cần Đước', 'Cần Giuộc', 'Châu Thành'],
+    'Nam Định': ['Nam Định', 'Mỹ Lộc', 'Vụ Bản', 'Ý Yên', 'Nghĩa Hưng', 'Nam Trực', 'Trực Ninh', 'Xuân Trường', 'Giao Thủy', 'Hải Hậu'],
+    'Nghệ An': ['Vinh', 'Cửa Lò', 'Thái Hòa', 'Quế Phong', 'Quỳ Châu', 'Kỳ Sơn', 'Tương Dương', 'Nghĩa Đàn', 'Quỳ Hợp', 'Quỳnh Lưu', 'Con Cuông', 'Tân Kỳ', 'Anh Sơn', 'Diễn Châu', 'Yên Thành', 'Đô Lương', 'Thanh Chương', 'Nghi Lộc', 'Nam Đàn', 'Hưng Nguyên', 'Hoàng Mai'],
+    'Ninh Bình': ['Ninh Bình', 'Tam Điệp', 'Nho Quan', 'Gia Viễn', 'Hoa Lư', 'Yên Khánh', 'Kim Sơn', 'Yên Mô'],
+    'Ninh Thuận': ['Phan Rang-Tháp Chàm', 'Bác Ái', 'Ninh Sơn', 'Ninh Hải', 'Ninh Phước', 'Thuận Bắc', 'Thuận Nam'],
+    'Phú Thọ': ['Việt Trì', 'Phú Thọ', 'Đoan Hùng', 'Hạ Hòa', 'Thanh Ba', 'Phù Ninh', 'Yên Lập', 'Cẩm Khê', 'Tam Nông', 'Thanh Sơn', 'Thanh Thủy', 'Tân Sơn', 'Lâm Thao'],
+    'Phú Yên': ['Tuy Hòa', 'Sông Cầu', 'Đông Hòa', 'Đồng Xuân', 'Tuy An', 'Sơn Hòa', 'Sông Hinh', 'Tây Hòa', 'Phú Hòa'],
+    'Quảng Bình': ['Đồng Hới', 'Ba Đồn', 'Minh Hóa', 'Tuyên Hóa', 'Quảng Trạch', 'Bố Trạch', 'Quảng Ninh', 'Lệ Thủy'],
+    'Quảng Nam': ['Tam Kỳ', 'Hội An', 'Tây Giang', 'Đông Giang', 'Nam Giang', 'Phước Sơn', 'Bắc Trà My', 'Nam Trà My', 'Hiệp Đức', 'Tiên Phước', 'Bắc Trà My', 'Điện Bàn'],
+    'Quảng Ngãi': ['Quảng Ngãi', 'Bình Sơn', 'Trà Bồng', 'Tây Trà', 'Sơn Tịnh', 'Tư Nghĩa', 'Sơn Hà', 'Sơn Tây', 'Nghĩa Hành', 'Mộ Đức', 'Đức Phổ', 'Ba Tơ', 'Minh Long', 'Lý Sơn'],
+    'Quảng Ninh': ['Hạ Long', 'Móng Cái', 'Cẩm Phả', 'Uông Bí', 'Bình Liêu', 'Tiên Yên', 'Đầm Hà', 'Quảng Yên', 'Đông Triều', 'Vân Đồn', 'Cô Tô'],
+    'Quảng Trị': ['Đông Hà', 'Quảng Trị', 'Vĩnh Linh', 'Hướng Hóa', 'Gio Linh', 'Đa Krông', 'Cam Lộ', 'Triệu Phong', 'Hải Lăng', 'Cồn Cỏ'],
+    'Sóc Trăng': ['Sóc Trăng', 'Châu Thành', 'Kế Sách', 'Mỹ Tú', 'Cù Lao Dung', 'Long Phú', 'Mỹ Xuyên', 'Ngã Năm', 'Thạnh Trị', 'Vĩnh Châu', 'Trần Đề'],
+    'Sơn La': ['Sơn La', 'Quỳnh Nhai', 'Thuận Châu', 'Mường La', 'Bắc Yên', 'Phù Yên', 'Mộc Châu', 'Yên Châu', 'Mai Sơn', 'Sông Mã', 'Sốp Cộp', 'Vân Hồ'],
+    'Tây Ninh': ['Tây Ninh', 'Tân Biên', 'Tân Châu', 'Dương Minh Châu', 'Châu Thành', 'Hòa Thành', 'Gò Dầu', 'Bến Cầu', 'Trảng Bàng'],
+    'Thái Bình': ['Thái Bình', 'Quỳnh Phụ', 'Hưng Hà', 'Đông Hưng', 'Thái Thụy', 'Tiền Hải', 'Kiến Xương', 'Vũ Thư'],
+    'Thái Nguyên': ['Thái Nguyên', 'Sông Công', 'Định Hóa', 'Phú Lương', 'Đồng Hỷ', 'Võ Nhai', 'Đại Từ', 'Phổ Yên', 'Phú Bình'],
+    'Thanh Hóa': ['Thanh Hóa', 'Bỉm Sơn', 'Sầm Sơn', 'Mường Lát', 'Quan Hóa', 'Bá Thước', 'Quan Sơn', 'Lang Chánh', 'Ngọc Lặc', 'Cẩm Thủy', 'Thạch Thành', 'Hà Trung', 'Vĩnh Lộc', 'Yên Định', 'Thọ Xuân', 'Thường Xuân', 'Triệu Sơn', 'Thiệu Hóa', 'Hoằng Hóa', 'Hậu Lộc', 'Nga Sơn', 'Quảng Xương', 'Nông Cống', 'Tĩnh Gia', 'Đông Sơn', 'An Định'],
+    'Thừa Thiên Huế': ['Huế', 'Phong Điền', 'Quảng Điền', 'Hương Trà', 'Phú Vang', 'Hương Thủy', 'Phú Lộc', 'Nam Đông', 'A Lưới'],
+    'Tiền Giang': ['Mỹ Tho', 'Gò Công', 'Cai Lậy', 'Tân Phước', 'Cái Bè', 'Châu Thành', 'Chợ Gạo', 'Gò Công Tây', 'Gò Công Đông', 'Tân Phú Đông'],
+    'Trà Vinh': ['Trà Vinh', 'Càng Long', 'Cầu Kè', 'Tiểu Cần', 'Châu Thành', 'Trà Cú', 'Cầu Ngang', 'Duyên Hải'],
+    'Tuyên Quang': ['Tuyên Quang', 'Lâm Bình', 'Na Hang', 'Chiêm Hóa', 'Hàm Yên', 'Yên Sơn', 'Sơn Dương'],
+    'Vĩnh Long': ['Vĩnh Long', 'Long Hồ', 'Mang Thít', 'Vũng Liêm', 'Tam Bình', 'Trà Ôn', 'Bình Minh', 'Bình Tân'],
+    'Vĩnh Phúc': ['Vĩnh Yên', 'Phúc Yên', 'Lập Thạch', 'Tam Dương', 'Tam Đảo', 'Bình Xuyên', 'Yên Lạc', 'Vĩnh Tường', 'Sông Lô'],
+    'Yên Bái': ['Yên Bái', 'Nghĩa Lộ', 'Lục Yên', 'Văn Yên', 'Mù Cang Chải', 'Trấn Yên', 'Trạm Tấu', 'Văn Chấn', 'Yên Bình'],
+  };
 
   final List<String> _availableInterests = [
     'Âm nhạc', 'Du lịch', 'Ẩm thực', 'Phim ảnh', 'Nghệ thuật', 'Công nghệ', 
     'Thể hình', 'Sách', 'Chơi game', 'Thiên nhiên', 'Thú cưng', 'Thời trang'
   ];
 
+  void _populateFromUser(User user) {
+    setState(() {
+      _nameController.text = user.name;
+      _bioController.text = user.bio;
+      _ageController.text = (user.age > 0) ? user.age.toString() : '';
+      _jobController.text = user.job;
+      _heightController.text = user.height != null ? user.height.toString() : '';
+      _cityController.text = user.city ?? '';
+      _districtController.text = user.district ?? '';
+      _addressController.text = user.address ?? '';
+      _livingController.text = user.livingAt ?? '';
+      _purpose = user.purpose ?? '';
+      _gender = user.gender;
+      _lookingFor = user.lookingFor.isNotEmpty ? user.lookingFor.first : '';
+      
+      if (user.interests.isNotEmpty) {
+        _selectedInterests.clear();
+        _selectedInterests.addAll(user.interests);
+        _customInterests.clear();
+        for (var interest in user.interests) {
+          if (!_availableInterests.contains(interest)) {
+            _customInterests.add(interest);
+          }
+        }
+      }
+
+      // Load existing photos (only if not already loaded)
+      if (_photos.isEmpty) {
+        for (var p in user.photos) {
+          _photos.add(PhotoItem(
+            id: p['id']?.toString(),
+            url: p['image_url']?.toString(),
+          ));
+        }
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = ref.read(authProvider).currentUser;
-      if (user != null) {
-        setState(() {
-          _nameController.text = user.name;
-          _bioController.text = user.bio;
-          _ageController.text = (user.age > 0) ? user.age.toString() : '';
-          _jobController.text = user.job;
-          _heightController.text = user.height != null ? user.height.toString() : '';
-          _livingController.text = user.livingAt ?? '';
-          _purpose = user.purpose ?? '';
-          _gender = user.gender;
-          _lookingFor = user.lookingFor.isNotEmpty ? user.lookingFor.first : '';
-          
-          if (user.interests.isNotEmpty) {
-            _selectedInterests.addAll(user.interests);
-            // Identify custom interests
-            for (var interest in user.interests) {
-              if (!_availableInterests.contains(interest)) {
-                _customInterests.add(interest);
-              }
-            }
-          }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // First populate with cached data (instant)
+      final cachedUser = ref.read(authProvider).currentUser;
+      if (cachedUser != null) {
+        _populateFromUser(cachedUser);
+      }
 
-          // Load existing photos
-          for (var p in user.photos) {
-            _photos.add(PhotoItem(
-              id: p['id']?.toString(),
-              url: p['image_url']?.toString(),
-            ));
+      // Then fetch fresh data from server (overrides with latest)
+      final token = ref.read(authProvider).token;
+      if (token != null) {
+        try {
+          final profileResponse = await ApiService.get('/profile/me', token: token);
+          if (profileResponse.containsKey('id') || profileResponse.containsKey('user_id')) {
+            final freshUser = User.fromJson(profileResponse);
+            // Update auth state with fresh data
+            ref.read(authProvider.notifier).updateProfile(freshUser);
+            // Re-populate form with fresh server data
+            _populateFromUser(freshUser);
           }
-        });
+        } catch (e) {
+          debugPrint('Profile setup: failed to fetch fresh profile: $e');
+        }
       }
     });
   }
@@ -101,6 +204,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     _ageController.dispose();
     _jobController.dispose();
     _heightController.dispose();
+    _cityController.dispose();
+    _districtController.dispose();
+    _addressController.dispose();
     _livingController.dispose();
     super.dispose();
   }
@@ -222,11 +328,78 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     
     if (permission == LocationPermission.deniedForever) return null;
 
-    return await Geolocator.getCurrentPosition();
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 5),
+      );
+    } catch (e) {
+      debugPrint('Location error: $e');
+      return null;
+    }
+  }
+
+  Future<void> _updateCoordinatesFromSelection() async {
+    if (_cityController.text.isEmpty || _districtController.text.isEmpty) return;
+    
+    final fullAddress = '${_districtController.text}, ${_cityController.text}, Việt Nam';
+    try {
+      List<Location> locations = await locationFromAddress(fullAddress);
+      if (locations.isNotEmpty) {
+        setState(() {
+          _latitude = locations.first.latitude;
+          _longitude = locations.first.longitude;
+        });
+        debugPrint('Coordinates resolved from dropdown: $_latitude, $_longitude');
+      }
+    } catch (e) {
+      debugPrint('Geocoding dropdown selection error: $e');
+    }
+  }
+
+  Future<void> _fetchCurrentLocation() async {
+    setState(() => _isFetchingLocation = true);
+    try {
+      final position = await _handleLocationPermission();
+      if (position != null) {
+        _latitude = position.latitude;
+        _longitude = position.longitude;
+        
+        // Reverse Geocoding to get City/District
+        try {
+          List<Placemark> placemarks = await placemarkFromCoordinates(_latitude!, _longitude!);
+          if (placemarks.isNotEmpty) {
+            final p = placemarks.first;
+            _cityController.text = p.administrativeArea ?? '';
+            _districtController.text = p.subAdministrativeArea ?? p.locality ?? '';
+            _addressController.text = [p.name, p.subLocality].where((s) => s != null && s.isNotEmpty).join(', ');
+            
+            _livingController.text = '${_districtController.text}, ${_cityController.text}'.trim();
+            if (_livingController.text.startsWith(',')) _livingController.text = _livingController.text.substring(1).trim();
+          }
+        } catch (e) {
+          debugPrint('Geocoding error: $e');
+        }
+        
+        if (mounted) {
+          ToastUtils.showModernToast(context, 'Đã cập nhật vị trí của bạn!', type: ToastType.success);
+        }
+      } else {
+        if (mounted) {
+          ToastUtils.showModernToast(context, 'Không thể lấy vị trí. Hãy bật GPS và quyền truy cập.', type: ToastType.warning);
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isFetchingLocation = false);
+      }
+    }
   }
 
   Future<void> _saveProfile() async {
+    if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
+    
     if (_photos.isEmpty) {
        ToastUtils.showModernToast(context, 'Vui lòng thêm ít nhất 1 ảnh', type: ToastType.warning);
        return;
@@ -239,27 +412,55 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final token = ref.read(authProvider).token;
     if (token == null) return;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+    setState(() => _isSaving = true);
 
     try {
-      // 1. Delete marked photos
-      for (var id in _deletedPhotoIds) {
-        await ApiService.delete('/profile/photos/$id', token: token);
-      }
-
-      // 2. Upload new local photos
-      List<String> newUrls = [];
-      for (var photo in _photos) {
-        if (photo.isLocal) {
-          final url = await CloudinaryService.uploadImage(photo.localFile!.path, token);
-          if (url != null) newUrls.add(url);
+      // 0. Manual Address Geocoding (If user typed but didn't click auto-fetch)
+      if (_latitude == null && (_cityController.text.isNotEmpty || _districtController.text.isNotEmpty)) {
+        final fullAddress = '${_addressController.text}, ${_districtController.text}, ${_cityController.text}'.trim();
+        try {
+          List<Location> locations = await locationFromAddress(fullAddress);
+          if (locations.isNotEmpty) {
+            _latitude = locations.first.latitude;
+            _longitude = locations.first.longitude;
+            debugPrint('Manual address resolved: $_latitude, $_longitude');
+          }
+        } catch (e) {
+          debugPrint('Geocoding manual address error: $e');
         }
       }
 
+      // 1. Parallelize independent tasks: Deletions, Uploads, and Location
+      
+      // Prepare deletion tasks
+      final deleteTasks = _deletedPhotoIds.map((id) => ApiService.delete('/profile/photos/$id', token: token));
+      
+      // Prepare upload tasks
+      final uploadTasks = _photos
+          .where((p) => p.isLocal)
+          .map((p) => CloudinaryService.uploadImage(p.localFile!.path, token))
+          .toList();
+
+      // Start location fetching if not already fetched
+      final locationFuture = (_latitude == null) ? _handleLocationPermission() : Future.value(null);
+
+      // Wait for all deletions and uploads
+      final results = await Future.wait([
+        Future.wait(deleteTasks),
+        Future.wait(uploadTasks),
+        locationFuture,
+      ]);
+
+      final List<String?> uploadedUrls = results[1] as List<String?>;
+      final List<String> newUrls = uploadedUrls.whereType<String>().toList();
+      final Position? position = results[2] as Position?;
+      
+      if (position != null) {
+        _latitude = position.latitude;
+        _longitude = position.longitude;
+      }
+
+      // 2. Add uploaded photo URLs to profile if any
       if (newUrls.isNotEmpty) {
         await ApiService.post('/profile/photo-urls', {'urls': newUrls}, token: token);
       }
@@ -268,7 +469,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       final oldUser = ref.read(authProvider).currentUser;
       int xpGained = 0;
       
-      // Photo XP: +10 for first, +5 for others
       final oldPhotoCount = oldUser?.photos.length ?? 0;
       final newPhotoCount = _photos.length;
       if (oldPhotoCount == 0 && newPhotoCount > 0) {
@@ -278,7 +478,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         xpGained += (newPhotoCount - oldPhotoCount) * 5;
       }
 
-      // Field XP: +10 for each newly filled field
       void checkXP(dynamic oldVal, dynamic newVal) {
         bool wasEmpty = (oldVal == null || (oldVal is String && oldVal.isEmpty) || (oldVal is List && oldVal.isEmpty) || (oldVal == 0));
         bool isNotEmpty = (newVal != null && ((newVal is String && newVal.isNotEmpty) || (newVal is List && newVal.isNotEmpty) || (newVal is num && newVal > 0)));
@@ -293,14 +492,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       checkXP(oldUser?.height, int.tryParse(_heightController.text));
       checkXP(oldUser?.purpose, _purpose);
       checkXP(oldUser?.livingAt, _livingController.text.trim());
-      checkXP(null, _gender); // assuming always counts if set now
+      checkXP(oldUser?.gender, _gender);
       checkXP(oldUser?.lookingFor, _lookingFor.isEmpty ? [] : [_lookingFor]);
 
       // 4. Update profile info
-      final position = await _handleLocationPermission();
-      final lat = position?.latitude ?? 10.762622;
-      final lng = position?.longitude ?? 106.660172;
-
       await ApiService.post('/profile/update', {
         'display_name': _nameController.text.trim(),
         'age': int.tryParse(_ageController.text.trim()) ?? 18,
@@ -310,10 +505,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         'interests': _selectedInterests,
         'height': int.tryParse(_heightController.text.trim()),
         'purpose': _purpose,
-        'living_at': _livingController.text.trim(),
+        'city': _cityController.text.trim(),
+        'district': _districtController.text.trim(),
+        'address': _addressController.text.trim(),
+        'living_at': '${_districtController.text.trim()}, ${_cityController.text.trim()}',
         'looking_for': _lookingFor,
-        'lat': lat,
-        'lng': lng,
+        'lat': _latitude,
+        'lng': _longitude,
       }, token: token);
 
       // 5. Award XP in backend
@@ -333,15 +531,17 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       final updatedProfile = await ApiService.get('/profile/me', token: token);
       final user = User.fromJson(updatedProfile);
       ref.read(authProvider.notifier).updateProfile(user);
+      
+      // Refresh gamification status to show new XP/badges
+      ref.read(gamificationProvider.notifier).loadStatus();
 
       if (mounted) {
-        Navigator.pop(context); // Close loading
+        setState(() => _isSaving = false);
         
         if (wasComplete) {
           ToastUtils.showModernToast(context, 'Cập nhật thành công! +$xpGained XP', type: ToastType.success);
           context.pop();
         } else {
-          // Success dialog for initial setup
           await showDialog(
             context: context,
             barrierDismissible: false,
@@ -352,45 +552,18 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
+        setState(() => _isSaving = false);
         ToastUtils.showModernToast(context, 'Lỗi: $e', type: ToastType.error);
       }
     }
   }
 
   void _handleBack() {
-    final isComplete = ref.read(authProvider).isProfileComplete;
-    if (isComplete) {
+    if (context.canPop()) {
       context.pop();
-      return;
+    } else {
+      context.go('/home');
     }
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('⚠️ Hồ sơ chưa hoàn thiện', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text(
-          'Hồ sơ sơ sài sẽ làm bạn mất đi cơ hội “ghép đôi” thành công và AI cũng không thể tìm được người phù hợp nhất cho bạn.\n\nBạn có chắc chắn muốn quay lại màn hình đăng nhập không?',
-          style: TextStyle(height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Tiếp tục điền hồ sơ', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              // Phải logout trước khi quay lại đăng nhập, nếu không Router sẽ tự động redirect về /home
-              ref.read(authProvider.notifier).logout();
-              context.go('/login');
-            },
-            child: Text('Quay lại Đăng nhập', style: TextStyle(color: Colors.grey[600])),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -448,7 +621,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionHeader('Thông tin cá nhân', trailingXP: '+10 XP mỗi mục'),
+                    _buildSectionHeader('Thông tin cơ bản'),
                     _buildCard([
                       _buildTextField(
                         controller: _nameController,
@@ -515,10 +688,52 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                         ],
                       ),
                       const Divider(height: 1),
+                      _buildDropdownField(
+                        label: 'Tỉnh / Thành phố',
+                        icon: Icons.location_city,
+                        value: _cityController.text.isEmpty ? null : _cityController.text,
+                        items: _vietnamLocations.keys.toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _cityController.text = val ?? '';
+                            _districtController.text = ''; // Reset district when city changes
+                            _livingController.text = _cityController.text;
+                          });
+                        },
+                      ),
+                      const Divider(height: 1),
+                      _buildDropdownField(
+                        label: 'Quận / Huyện',
+                        icon: Icons.map_outlined,
+                        value: (_cityController.text.isNotEmpty && _vietnamLocations[_cityController.text]!.contains(_districtController.text)) 
+                            ? _districtController.text 
+                            : null,
+                        items: _cityController.text.isEmpty ? [] : _vietnamLocations[_cityController.text]!,
+                        onChanged: (val) {
+                          setState(() {
+                            _districtController.text = val ?? '';
+                            _livingController.text = '${_districtController.text}, ${_cityController.text}';
+                          });
+                          _updateCoordinatesFromSelection(); // Automatically update lat/lng
+                        },
+                      ),
+                      const Divider(height: 1),
                       _buildTextField(
-                        controller: _livingController,
-                        label: 'Đang sống tại',
-                        icon: Icons.location_on_outlined,
+                        controller: _addressController,
+                        label: 'Địa chỉ cụ thể / Phường xã',
+                        icon: Icons.home_outlined,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 52, bottom: 8, right: 16),
+                        child: _isFetchingLocation 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : GestureDetector(
+                              onTap: _fetchCurrentLocation,
+                              child: const Text(
+                                '📍 Tự động lấy vị trí chính xác',
+                                style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                            ),
                       ),
                     ]),
                     
@@ -613,6 +828,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     GradientButton(
                       text: 'Hoàn tất & Nhận XP',
                       onPressed: _saveProfile,
+                      isLoading: _isSaving,
                       width: double.infinity,
                     ),
                     const SizedBox(height: 40),
@@ -720,6 +936,33 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(children: children),
+    );
+  }
+
+  Widget _buildDropdownField({
+    required String label,
+    required IconData icon,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButtonFormField<String>(
+          value: items.contains(value) ? value : null,
+          decoration: InputDecoration(
+            icon: Icon(icon, color: Colors.grey[400], size: 18),
+            labelText: label,
+            labelStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 8),
+          ),
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 15)))).toList(),
+          onChanged: onChanged,
+          validator: (v) => (v == null || v.isEmpty) ? 'Vui lòng chọn' : null,
+        ),
+      ),
     );
   }
 

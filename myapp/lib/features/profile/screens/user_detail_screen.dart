@@ -252,7 +252,7 @@ class _UserDetailScreenState extends ConsumerState<UserDetailScreen> {
             Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
             const SizedBox(width: 4),
             Text(
-              'Cách bạn ${user.distanceKm} km',
+              'Cách bạn ${user.distanceKm} km${user.livingAt != null && user.livingAt!.isNotEmpty ? ' • ${user.livingAt}' : ''}',
               style: TextStyle(color: Colors.grey[600], fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ],
