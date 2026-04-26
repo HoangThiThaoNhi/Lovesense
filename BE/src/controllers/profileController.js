@@ -1,4 +1,4 @@
-const { Profile, Photo, Badge, UserBadge } = require('../models');
+const { User, Profile, Photo, Badge, UserBadge } = require('../models');
 
 // Helper to fetch badges for a user
 async function getBadgesForUser(userId) {
