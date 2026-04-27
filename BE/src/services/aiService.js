@@ -126,27 +126,36 @@ class AIService {
         }
     }
 
-    async analyzeUserTaste(likedProfiles) {
+    async analyzeUserTaste(likedProfiles, nopedProfiles = []) {
         try {
-            const profileSummaries = likedProfiles.map(p => 
-                `- Tuổi: ${p.age}, Cao: ${p.height}cm, Nghề: ${p.occupation}, Mục đích: ${p.purpose}, Sở thích: ${Array.isArray(p.interests) ? p.interests.join(', ') : p.interests}, Bio: ${p.bio}`
+            const likedSummaries = likedProfiles.map(p => 
+                `[LIKE] Tuổi: ${p.age}, Cao: ${p.height}cm, Nghề: ${p.occupation}, Mục đích: ${p.purpose || 'không rõ'}, Sở thích: ${Array.isArray(p.interests) ? p.interests.join(', ') : p.interests}, Bio: ${p.bio}`
+            ).join('\n');
+
+            const nopedSummaries = nopedProfiles.map(p => 
+                `[NOPE] Tuổi: ${p.age}, Cao: ${p.height}cm, Nghề: ${p.occupation}, Mục đích: ${p.purpose || 'không rõ'}, Sở thích: ${Array.isArray(p.interests) ? p.interests.join(', ') : p.interests}, Bio: ${p.bio}`
             ).join('\n');
 
             const prompt = `
-                Dưới đây là danh sách 10 hồ sơ mà một người dùng yêu thích. 
-                Hãy phân tích sâu để tìm "gu" chung về:
-                1. Chiều cao (Thích người cao, thấp hay trung bình?)
-                2. Độ tuổi (Thích người trẻ hơn, bằng tuổi hay chững chạc?)
-                3. Mục đích (Thích người tìm mối quan hệ nghiêm túc hay bạn bè?)
-                4. Phong cách sống và tính cách ẩn.
+                Bạn là một chuyên gia phân tích tâm lý hẹn hò AI.
+                Dưới đây là tập dữ liệu (Dataset) gồm các hồ sơ mà người dùng đã THÍCH (Green Flags) và BỎ QUA (Red Flags).
+                
+                Danh sách ĐÃ THÍCH (Mẫu người họ hướng tới):
+                ${likedSummaries}
 
-                Danh sách:
-                ${profileSummaries}
+                Danh sách BỎ QUA (Mẫu người họ không có cảm tình):
+                ${nopedSummaries}
 
-                Trả về JSON duy nhất:
+                Nhiệm vụ: Phân tích đối chiếu (Contrast Analysis) giữa tập LIKE và NOPE để tìm ra chính xác "GU" của người dùng.
+                Tập trung vào:
+                1. Nghề nghiệp và Môi trường sống (Ví dụ: Thích người làm nghệ thuật hay văn phòng? Ghét đặc điểm nào?)
+                2. Phong cách sống & Sở thích (Ví dụ: Thích người hướng ngoại thể thao hay hướng nội đọc sách?)
+                3. Hình thể & Độ tuổi (Xu hướng chọn tuổi và chiều cao so với tập bỏ qua)
+
+                Trả về định dạng JSON duy nhất, không giải thích thêm:
                 {
-                  "analysis": "Đoạn văn ngắn mô tả gu",
-                  "learned_tags": ["tag1", "tag2", ...]
+                  "analysis": "Đoạn văn phân tích chuyên sâu về Gu người yêu của user (kết hợp cả những gì họ thích và những gì họ né tránh).",
+                  "learned_tags": ["<từ khóa 1>", "<từ khóa 2>", "<từ khóa 3>"]
                 }
             `;
 
@@ -187,7 +196,7 @@ class AIService {
             - Dùng đại từ "Bạn". 
             - Phân tích xem với DNA này, BẠN là người như thế nào trong tình yêu.
             - Viết 1 đoạn văn summary mặn mà, sâu sắc.
-            - Đưa ra 3-5 điểm nhấn (highlights) về tính cách của BẠN (bắt đầu bằng ✨).
+            - Đưa ra 3-5 điểm nhấn (highlights) về tính cách của BẠN (bắt đầu bằng ✨). Không copy nguyên văn ví dụ dưới đây.
 
             Phần 2: Chân dung Nửa kia lý tưởng (Ideal Partner)
             - Dùng đại từ "Người ấy" hoặc "Nửa kia".
@@ -195,9 +204,9 @@ class AIService {
 
             TRẢ VỀ JSON DUY NHẤT THEO CẤU TRÚC:
             {
-              "user_summary": "Bạn là một người có tâm hồn...",
-              "user_highlights": ["✨ Bạn luôn thấu hiểu...", "✨ Bạn có gu thẩm mỹ...", ...],
-              "ideal_partner_vibe": "Nửa kia của bạn sẽ là một người mang năng lượng..."
+              "user_summary": "<Nhập đoạn tóm tắt phân tích về bản thân>",
+              "user_highlights": ["✨ <Điểm nổi bật 1>", "✨ <Điểm nổi bật 2>", "✨ <Điểm nổi bật 3>"],
+              "ideal_partner_vibe": "<Nhập mô tả về nửa kia lý tưởng>"
             }
         `;
 
@@ -245,11 +254,44 @@ class AIService {
 
     async calculateDNAProfile(answers, aiVector = null) {
         let scores = { ambition_score: 50, personality_score: 50, career_score: 50, core_values_score: 50, interests_score: 50, lifestyle_score: 50, family_orientation_score: 50 };
-        if (aiVector && Array.isArray(aiVector)) {
+        
+        if (aiVector && typeof aiVector === 'object' && !Array.isArray(aiVector)) {
+            // Helper to convert [-1.0, 1.0] to [0, 100]
+            const mapScore = (val) => {
+                if (val === undefined || val === null) return 50;
+                return Math.round(((val + 1) / 2) * 100);
+            };
+
+            const avg = (keys) => {
+                let sum = 0;
+                let count = 0;
+                keys.forEach(k => {
+                    if (aiVector[k] !== undefined) {
+                        sum += aiVector[k];
+                        count++;
+                    }
+                });
+                return count === 0 ? 50 : mapScore(sum / count);
+            };
+
+            scores.ambition_score = avg(['career_ambition', 'intellectual_curiosity']);
+            scores.personality_score = avg(['extroversion', 'emotional_stability', 'openness_to_exp']);
+            scores.career_score = avg(['career_ambition', 'spending_habit']);
+            scores.core_values_score = avg(['religion_influence', 'political_view', 'loyalty_definition']);
+            scores.interests_score = avg(['travel_style', 'intellectual_curiosity']);
+            scores.lifestyle_score = avg(['cleanliness_level', 'diet_fitness', 'circadian_rhythm', 'spending_habit']);
+            scores.family_orientation_score = avg(['family_goal', 'loyalty_definition', 'attachment_style']);
+        } else if (aiVector && Array.isArray(aiVector)) {
             scores.ambition_score = Math.round((aiVector[10] || 0.5) * 100);
             scores.personality_score = Math.round(((aiVector[0] || 0.5) + (aiVector[1] || 0.5)) / 2 * 100);
-            // ... more mappings as needed
+            // Additional basic mappings for the array format
+            scores.career_score = Math.round((aiVector[11] || 0.5) * 100);
+            scores.core_values_score = Math.round((aiVector[6] || 0.5) * 100);
+            scores.interests_score = Math.round((aiVector[17] || 0.5) * 100);
+            scores.lifestyle_score = Math.round((aiVector[12] || 0.5) * 100);
+            scores.family_orientation_score = Math.round((aiVector[4] || 0.5) * 100);
         }
+        
         return scores;
     }
 }

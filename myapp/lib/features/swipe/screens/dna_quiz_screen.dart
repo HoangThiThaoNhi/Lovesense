@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -86,10 +87,19 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
 
     try {
       final token = ref.read(authProvider).token;
-      final response = await ApiService.get('/quiz/report', token: token);
+      final response = await ApiService.get('/quiz/report?forceNew=true', token: token);
       if (mounted) {
+        // Safe cast: handle case where response is a double-encoded JSON string
+        Map<String, dynamic> reportMap;
+        if (response is Map<String, dynamic>) {
+          reportMap = response;
+        } else if (response is String) {
+          reportMap = Map<String, dynamic>.from(jsonDecode(response) as Map);
+        } else {
+          reportMap = Map<String, dynamic>.from(response as Map);
+        }
         setState(() {
-          _report = response as Map<String, dynamic>;
+          _report = reportMap;
           _isAnalyzing = false;
         });
       }
@@ -327,10 +337,14 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
                 })
                 .moveY(begin: -10, end: 10, duration: 1.seconds),
             const SizedBox(height: 32),
-            const Text(
-              'Lovesense AI đang giải mã DNA Soulmate của bạn...',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ).animate().fadeIn(delay: 500.ms),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+              child: const Text(
+                'Lovesense AI đang giải mã DNA Soulmate của bạn...',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, height: 1.4),
+              ).animate().fadeIn(delay: 500.ms),
+            ),
             const SizedBox(height: 16),
             const CircularProgressIndicator(color: Colors.white),
           ],
@@ -514,8 +528,8 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
                         currentFilter.copyWith(ignoreDNA: false),
                       );
 
-                      // 2. Perform a hard refresh to show new DNA-based results
-                      await ref.read(swipeProvider.notifier).fetchDiscovery(silent: false);
+                      // 2. Perform a reset and hard refresh to show new DNA-based results (including previously swiped users)
+                      await ref.read(swipeProvider.notifier).resetSwipes();
                       
                       if (context.mounted) {
                         context.pop();

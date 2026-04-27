@@ -254,7 +254,58 @@ exports.bulkGenerateUsers = async (req, res) => {
             'Film Director', 'Music Producer', 'Illustrator', 'Barber', 'Travel Blogger', 'Event Planner', 'Human Resources', 'Nutritionist'
         ];
         
-        const locations = ['Ha Noi', 'TP. Ho Chi Minh', 'Da Nang', 'Can Tho', 'Hai Phong', 'Da Lat', 'Nha Trang', 'Vung Tau', 'Hue', 'Buon Ma Thuot', 'Phu Quoc', 'Ha Long', 'Sapa', 'Quy Nhon', 'Phan Thiet', 'Pleiku', 'Vinh', 'Rach Gia', 'Long Xuyen', 'Soc Trang', 'Vinh Long', 'Bac Lieu', 'Ca Mau'];
+        const vietnameseLocations = [
+            { city: 'Hà Nội', weight: 70, baseLat: 21.0285, baseLng: 105.8544, districts: [
+                { name: 'Quận Hoàn Kiếm', streets: ['Phố cổ', 'Tràng Tiền', 'Lý Thường Kiệt', 'Hai Bà Trưng', 'Hàng Bài'] },
+                { name: 'Quận Ba Đình', streets: ['Kim Mã', 'Đội Cấn', 'Giảng Võ', 'Liễu Giai', 'Nguyễn Thái Học'] },
+                { name: 'Quận Đống Đa', streets: ['Thái Hà', 'Chùa Bộc', 'Nguyễn Lương Bằng', 'Xã Đàn', 'Tôn Đức Thắng'] },
+                { name: 'Quận Cầu Giấy', streets: ['Xuân Thủy', 'Cầu Giấy', 'Trần Thái Tông', 'Hoàng Quốc Việt', 'Nguyễn Phong Sắc'] },
+                { name: 'Quận Hai Bà Trưng', streets: ['Bạch Mai', 'Trần Khát Chân', 'Minh Khai', 'Lò Đúc', 'Phố Huế'] },
+                { name: 'Quận Tây Hồ', streets: ['Xuân Diệu', 'Thụy Khuê', 'Trích Sài', 'Lạc Long Quân', 'Âu Cơ'] },
+                { name: 'Quận Thanh Xuân', streets: ['Nguyễn Trãi', 'Lê Văn Lương', 'Khuất Duy Tiến', 'Nguyễn Xiển', 'Vũ Trọng Phụng'] },
+                { name: 'Quận Hà Đông', streets: ['Trần Phú', 'Quang Trung', 'Nguyễn Trãi', 'Lê Trọng Tấn', 'Văn Phú'] }
+            ]},
+            { city: 'Hồ Chí Minh', weight: 20, baseLat: 10.8231, baseLng: 106.6297, districts: [
+                { name: 'Quận 1', streets: ['Nguyễn Huệ', 'Lê Lợi', 'Đồng Khởi', 'Pasteur', 'Lý Tự Trọng'] },
+                { name: 'Quận 3', streets: ['Nguyễn Đình Chiểu', 'Võ Văn Tần', 'Lê Văn Sỹ', 'Điện Biên Phủ', 'Nam Kỳ Khởi Nghĩa'] },
+                { name: 'Quận 7', streets: ['Nguyễn Văn Linh', 'Nguyễn Thị Thập', 'Huỳnh Tấn Phát', 'Trần Xuân Soạn', 'Lê Văn Lương'] },
+                { name: 'Quận 10', streets: ['Sư Vạn Hạnh', 'Thành Thái', 'Tô Hiến Thành', '3 Tháng 2', 'Lý Thái Tổ'] },
+                { name: 'Quận Bình Thạnh', streets: ['Điện Biên Phủ', 'Nguyễn Hữu Cảnh', 'Phan Đăng Lưu', 'Nơ Trang Long', 'Xô Viết Nghệ Tĩnh'] },
+                { name: 'Quận Gò Vấp', streets: ['Quang Trung', 'Phan Văn Trị', 'Nguyễn Thái Sơn', 'Lê Đức Thọ', 'Phạm Văn Đồng'] }
+            ]},
+            { city: 'Đà Nẵng', weight: 10, baseLat: 16.0544, baseLng: 108.2022, districts: [
+                { name: 'Quận Hải Châu', streets: ['Bạch Đằng', 'Trần Phú', 'Lê Duẩn', 'Nguyễn Văn Linh', 'Phan Châu Trinh'] },
+                { name: 'Quận Sơn Trà', streets: ['Võ Nguyên Giáp', 'Phạm Văn Đồng', 'Nguyễn Văn Thoại', 'Trần Hưng Đạo', 'Hoàng Sa'] },
+                { name: 'Quận Ngũ Hành Sơn', streets: ['Lê Văn Hiến', 'Ngũ Hành Sơn', 'Võ Chí Công', 'Hồ Xuân Hương', 'Châu Thị Tế'] }
+            ]}
+        ];
+
+
+        const getRandomLocation = () => {
+            const rand = Math.random() * 100;
+            let currentWeight = 0;
+            let selectedCity = vietnameseLocations[0];
+            for (const loc of vietnameseLocations) {
+                currentWeight += loc.weight;
+                if (rand <= currentWeight) {
+                    selectedCity = loc;
+                    break;
+                }
+            }
+            const selectedDistrict = selectedCity.districts[Math.floor(Math.random() * selectedCity.districts.length)];
+            const selectedStreet = selectedDistrict.streets[Math.floor(Math.random() * selectedDistrict.streets.length)];
+            const houseNumber = Math.floor(Math.random() * 200) + 1;
+            const lat = selectedCity.baseLat + (Math.random() * 0.05 - 0.025);
+            const lng = selectedCity.baseLng + (Math.random() * 0.05 - 0.025);
+            return {
+                city: selectedCity.city,
+                district: selectedDistrict.name,
+                address: `Số ${houseNumber} ${selectedStreet}`,
+                livingAt: `Số ${houseNumber} ${selectedStreet}, ${selectedDistrict.name}, ${selectedCity.city}`,
+                lat: lat,
+                lng: lng
+            };
+        };
         
         const interestsList = [
             'Âm nhạc', 'Du lịch', 'Xem phim', 'Chạy bộ', 'Nấu ăn', 'Boardgame', 'Cà phê', 'Tarot', 'Gym', 'Thú cưng', 'Đọc sách', 'Phượt', 
@@ -353,7 +404,8 @@ exports.bulkGenerateUsers = async (req, res) => {
                 : `${randomSurname} ${femaleNames[Math.floor(Math.random() * femaleNames.length)]}`;
             const randomAge = Math.floor(Math.random() * 28) + 18; // 18-45
             const randomJob = jobs[Math.floor(Math.random() * jobs.length)];
-            const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+            const addressObj = getRandomLocation();
+            const randomLocation = addressObj.livingAt;
             const randomBio = bios[Math.floor(Math.random() * bios.length)];
             const interestCount = Math.floor(Math.random() * 4) + 3; // 3-6 interests
             const randomInterests = interestsList.sort(() => 0.5 - Math.random()).slice(0, interestCount);
@@ -367,14 +419,6 @@ exports.bulkGenerateUsers = async (req, res) => {
             const email = `user${Date.now()}${i}@lovesense.ai`;
             const password = await bcrypt.hash('123456', 10);
 
-            // 1. Create User
-            const user = await User.create({
-                email,
-                password,
-                role: 'user',
-                status: 'active'
-            }, { transaction: t });
-
             // 2. Upload image to Cloudinary
             let avatarUrl = '';
             if (files[i]) {
@@ -387,26 +431,71 @@ exports.bulkGenerateUsers = async (req, res) => {
 
             // 3. Normalize gender for DB
             const dbGender = currentGender === 'Nam' ? 'male' : 'female';
+            const dbTargetGender = currentLookingFor === 'Nam' ? 'male' : (currentLookingFor === 'Nữ' ? 'female' : 'both');
 
-            // 4. Create Profile
+            // Generate Birthday based on randomAge
+            const birthday = new Date();
+            birthday.setFullYear(birthday.getFullYear() - randomAge);
+            birthday.setMonth(Math.floor(Math.random() * 12));
+            birthday.setDate(Math.floor(Math.random() * 28) + 1);
+
+            // 1. Create User with full fields
+            const user = await User.create({
+                email,
+                password,
+                role: 'user',
+                status: 'active',
+                full_name: randomName,
+                birthday: birthday,
+                gender: dbGender,
+                target_gender: dbTargetGender,
+                avatar_url: avatarUrl,
+                bio: randomBio,
+                ambition_score: Math.floor(Math.random() * 100),
+                personality_score: Math.floor(Math.random() * 100),
+                career_score: Math.floor(Math.random() * 100),
+                core_values_score: Math.floor(Math.random() * 100),
+                interests_score: Math.floor(Math.random() * 100),
+                lifestyle_score: Math.floor(Math.random() * 100),
+                family_orientation_score: Math.floor(Math.random() * 100)
+            }, { transaction: t });
+
+            // 4. Create Profile with full fields
             await Profile.create({
                 user_id: user.id,
                 display_name: randomName,
                 age: randomAge,
                 gender: dbGender,
-                looking_for: currentLookingFor,
-                location: { type: 'Point', coordinates: [baseLng + (Math.random() * 0.05 - 0.025), baseLat + (Math.random() * 0.05 - 0.025)] },
+                looking_for: dbTargetGender,
+                location: { type: 'Point', coordinates: [addressObj.lng, addressObj.lat] },
                 occupation: randomJob,
-                living_at: randomLocation,
+                living_at: addressObj.livingAt,
+                city: addressObj.city,
+                district: addressObj.district,
+                address: addressObj.address,
                 height: Math.floor(Math.random() * 35) + 150, // 150-185
                 bio: randomBio,
                 purpose: randomPurpose, 
                 interests: randomInterests,
-                avatar: avatarUrl,
                 points: randomPoints,
                 current_title: randomTitle,
                 ai_ideal_description: randomIdeal,
-                ai_match_keywords: randomKeywords
+                ai_match_keywords: randomKeywords,
+                ai_preferences: {
+                    preferred_age_min: Math.max(18, randomAge - 5),
+                    preferred_age_max: randomAge + 5,
+                    preferred_height_min: 150,
+                    preferred_height_max: 190
+                },
+                dna_vector: {
+                    ambition: parseFloat(Math.random().toFixed(2)),
+                    personality: parseFloat(Math.random().toFixed(2)),
+                    career: parseFloat(Math.random().toFixed(2)),
+                    core_values: parseFloat(Math.random().toFixed(2)),
+                    interests: parseFloat(Math.random().toFixed(2)),
+                    lifestyle: parseFloat(Math.random().toFixed(2)),
+                    family: parseFloat(Math.random().toFixed(2))
+                }
             }, { transaction: t });
 
             // 5. Create Photo entry for Flutter carousel

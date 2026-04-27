@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,8 +31,17 @@ class _DNAReportScreenState extends ConsumerState<DNAReportScreen> {
       final token = ref.read(authProvider).token;
       final response = await ApiService.get('/quiz/report', token: token);
       if (mounted) {
+        // Safe cast: handle case where response is a double-encoded JSON string
+        Map<String, dynamic> reportMap;
+        if (response is Map<String, dynamic>) {
+          reportMap = response;
+        } else if (response is String) {
+          reportMap = Map<String, dynamic>.from(jsonDecode(response) as Map);
+        } else {
+          reportMap = Map<String, dynamic>.from(response as Map);
+        }
         setState(() {
-          _report = response as Map<String, dynamic>;
+          _report = reportMap;
           _isLoading = false;
         });
       }

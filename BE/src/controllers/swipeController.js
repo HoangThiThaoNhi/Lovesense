@@ -120,7 +120,7 @@ exports.saveSurvey = async (req, res) => {
             }
 
             // 2. Generate Quantitative DNA Scores (Algorithmic + AI)
-            const dnaScores = AIService.calculateDNAProfile(answers, aiAnalysis?.preference_vector);
+            const dnaScores = await AIService.calculateDNAProfile(answers, aiAnalysis?.preference_vector);
             await User.update(dnaScores, { where: { id: userId } });
             console.log(`[Survey] DNA Scores saved to User table for user ${userId}`);
 
@@ -324,7 +324,7 @@ async function _updateAIPreferences(swiperId, swipedId, type) {
         await swiperProfile.update({ ai_preferences: prefs });
         console.log(`[AI Prefs] Updated keywords for user ${swiperId}: ${keywords.join(', ')} (Action: ${type})`);
 
-        // DEEP LEARNING: Every 5 Likes, trigger a deep taste analysis using Gemini
+        // DEEP LEARNING: Every 10 Likes, trigger a deep taste analysis using Gemini
         if (type === 'like' || type === 'superlike') {
             const likesCount = await Swipe.count({ 
                 where: { 
@@ -333,21 +333,31 @@ async function _updateAIPreferences(swiperId, swipedId, type) {
                 } 
             });
 
-            if (likesCount > 0 && likesCount % 5 === 0) {
+            if (likesCount > 0 && likesCount % 10 === 0) {
                 console.log(`[AI Prefs] Triggering Deep Taste Analysis for user ${swiperId} (Likes: ${likesCount})`);
                 
-                // Get last 10 liked profiles
+                // Get last 15 liked profiles (Green Flags)
                 const lastLikes = await Swipe.findAll({
                     where: { swiper_id: swiperId, type: { [require('sequelize').Op.in]: ['like', 'superlike'] } },
                     order: [['created_at', 'DESC']],
-                    limit: 10
+                    limit: 15
+                });
+                
+                // Get last 5 passed/noped profiles (Red Flags)
+                const lastNopes = await Swipe.findAll({
+                    where: { swiper_id: swiperId, type: 'nope' },
+                    order: [['created_at', 'DESC']],
+                    limit: 5
                 });
 
-                const swipedIds = lastLikes.map(l => l.swiped_id);
-                const likedProfiles = await Profile.findAll({ where: { user_id: swipedIds } });
+                const likedIds = lastLikes.map(l => l.swiped_id);
+                const nopedIds = lastNopes.map(l => l.swiped_id);
+                
+                const likedProfiles = await Profile.findAll({ where: { user_id: likedIds } });
+                const nopedProfiles = await Profile.findAll({ where: { user_id: nopedIds } });
 
-                if (likedProfiles.length >= 3) {
-                    const analysis = await AIService.analyzeUserTaste(likedProfiles);
+                if (likedProfiles.length >= 5) {
+                    const analysis = await AIService.analyzeUserTaste(likedProfiles, nopedProfiles);
                     if (analysis && analysis.learned_tags) {
                         // Merge new learned tags with existing DNA keywords
                         let currentKeywords = swiperProfile.ai_match_keywords || [];

@@ -116,6 +116,11 @@ const Profile = sequelize.define('Profile', {
         allowNull: true,
         defaultValue: {}
     },
+    dna_report: {
+        type: DataTypes.JSON, // Stores the latest AI-generated DNA report
+        allowNull: true,
+        defaultValue: null
+    },
     updated_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW

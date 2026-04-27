@@ -641,7 +641,7 @@ class _HomeSwipeScreenState extends ConsumerState<HomeSwipeScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => context.push('/dna-test'),
+                  onPressed: () => context.push('/dna-quiz'),
                   icon: const Icon(Icons.auto_awesome, size: 20),
                   label: const Text("Làm DNA Test ngay", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   style: ElevatedButton.styleFrom(

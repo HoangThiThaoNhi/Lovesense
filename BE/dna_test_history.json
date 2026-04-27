@@ -1,0 +1,52 @@
+[
+  {
+    "time": "2026-04-27T06:14:54.085Z",
+    "user_id": 681,
+    "display_name": "Đặng Khang",
+    "dna_vector": {
+      "extroversion": -1,
+      "intellectual_curiosity": 1,
+      "career_ambition": -0.6,
+      "family_goal": -0.6,
+      "spending_habit": 0.7,
+      "romance_style": -0.3,
+      "personal_space": 0.9,
+      "attachment_style": -0.6,
+      "communication_style": -0.4,
+      "conflict_approach": 0.2,
+      "financial_transparency": -0.8,
+      "religion_influence": 0.3,
+      "emotional_stability": -0.8,
+      "travel_style": 0.2,
+      "social_circle": -0.7,
+      "loyalty_definition": 0.5
+    },
+    "report": {
+      "summary": "Bạn là người có sự cân bằng giữa việc khám phá thế giới bên ngoài và thế giới nội tâm của mình. Với sự tò mò trí tuệ và ham học hỏi, bạn luôn tìm kiếm những trải nghiệm mới và những cuộc trò chuyện sâu sắc. Tuy nhiên, bạn cũng có một chút khó khăn trong việc thể hiện cảm xúc và gắn kết với người khác, nhưng một khi đã tìm được người phù hợp, bạn sẽ trở thành một người bạn đời hết lòng và chung thủy.",
+      "highlights": [
+        "✨ Bạn có một sự tò mò trí tuệ cao, luôn tìm kiếm những trải nghiệm mới và những cuộc trò chuyện sâu sắc",
+        "✨ Bạn có một chút khó khăn trong việc thể hiện cảm xúc, nhưng một khi đã mở lòng, bạn sẽ trở thành một người bạn đời hết lòng",
+        "✨ Bạn đặt giá trị cao vào sự trung thực và minh bạch trong mối quan hệ, và bạn mong đợi người ấy cũng có những giá trị tương tự"
+      ],
+      "ideal_vibe": "Người ấy là người có thể hiểu và chấp nhận bạn với tất cả những điểm mạnh và điểm yếu của bạn. Họ là người có sự tự tin và ổn định cảm xúc, có thể giúp bạn cảm thấy an toàn và được hỗ trợ. Họ cũng có một sự tò mò trí tuệ và ham học hỏi, luôn tìm kiếm những trải nghiệm mới và những cuộc trò chuyện sâu sắc. Người ấy là người có thể trở thành một người bạn đời lý tưởng, cùng bạn khám phá thế giới và xây dựng một mối quan hệ lâu dài và hạnh phúc.",
+      "debug_dna": {
+        "extroversion": -1,
+        "intellectual_curiosity": 1,
+        "career_ambition": -0.6,
+        "family_goal": -0.6,
+        "spending_habit": 0.7,
+        "romance_style": -0.3,
+        "personal_space": 0.9,
+        "attachment_style": -0.6,
+        "communication_style": -0.4,
+        "conflict_approach": 0.2,
+        "financial_transparency": -0.8,
+        "religion_influence": 0.3,
+        "emotional_stability": -0.8,
+        "travel_style": 0.2,
+        "social_circle": -0.7,
+        "loyalty_definition": 0.5
+      }
+    }
+  }
+]
