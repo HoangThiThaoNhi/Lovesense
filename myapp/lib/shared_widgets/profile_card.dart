@@ -161,74 +161,72 @@ class ProfileCard extends StatelessWidget {
               ),
             ),
             
-            // Gamification Badge (Top Right)
+            // Top Badges & Tags (Merged to avoid overlap)
             Positioned(
-              top: 20,
-              right: 20,
-              child: _buildBadge(
-                user.points >= 1000 ? 'assets/images/gold_badge_3d.png' :
-                user.points >= 500 ? 'assets/images/silver_badge_3d.png' :
-                'assets/images/bronze_badge_3d.png',
-                user.points >= 1000 ? 'Gold Heart' :
-                user.points >= 500 ? 'Silver Heart' :
-                'Bronze Heart',
-                Colors.blueAccent,
-              ),
-            ),
-
-            // DNA Match Badges (Top Left)
-            if (user.isDNAMatch == true || user.matchReason != null)
-            Positioned(
-              top: 20.0,
-              left: 20.0,
-              child: Column(
+              top: 12,
+              left: 12,
+              right: 12,
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (user.isDNAMatch == true)
-                  _buildBadge(
-                    'assets/images/new_double_heart_3d.png',
-                    'Soulmate Match',
-                    Colors.pinkAccent,
-                  ),
-                  if (user.matchReason != null)
-                  Container(
-                    margin: EdgeInsets.only(top: user.isDNAMatch == true ? 8 : 0),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  // Left: AI & DNA Tags
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
-                        const Icon(Icons.stars_rounded, color: Colors.amber, size: 14),
-                        const SizedBox(width: 6),
-                        Text(
-                          user.matchReason!,
-                          style: const TextStyle(
-                            color: Colors.white, 
-                            fontSize: 11, 
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.3,
+                        if (user.isDNAMatch == true)
+                          _buildBadge(
+                            'assets/images/new_double_heart_3d.png',
+                            'Soulmate',
+                            Colors.pinkAccent,
+                          )
+                        else if ((user.matchScore ?? 0) > 0)
+                          _buildBadge(
+                            'assets/images/new_double_heart_3d.png',
+                            'AI Match',
+                            AppColors.primary,
+                          ),
+                        
+                        if (user.matchReason != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.auto_awesome, color: Colors.amber, size: 12),
+                              const SizedBox(width: 4),
+                              Text(
+                                user.matchReason!.replaceAll('✨ ', ''), // Remove emoji to save space
+                                style: const TextStyle(
+                                  color: Colors.white, 
+                                  fontSize: 10, 
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  // Right: Rank Badge
+                  _buildBadge(
+                    user.points >= 1000 ? 'assets/images/gold_badge_3d.png' :
+                    user.points >= 500 ? 'assets/images/silver_badge_3d.png' :
+                    'assets/images/bronze_badge_3d.png',
+                    user.points >= 1000 ? 'Gold' :
+                    user.points >= 500 ? 'Silver' :
+                    'Bronze',
+                    Colors.blueAccent.withOpacity(0.8),
+                  ),
                 ],
-              ),
-            ),
-            
-            // AI Basic Match (Alternative)
-            if (user.isDNAMatch != true && (user.matchScore ?? 0) > 0)
-            Positioned(
-              top: 20.0,
-              left: 20.0,
-              child: _buildBadge(
-                'assets/images/new_double_heart_3d.png',
-                'AI Tương Hợp',
-                AppColors.primary,
               ),
             ),
           ],

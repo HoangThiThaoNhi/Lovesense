@@ -215,7 +215,7 @@ class _HomeSwipeScreenState extends ConsumerState<HomeSwipeScreen> {
                           onSwipe: _onSwipe,
                           numberOfCardsDisplayed: users.length < 3 ? users.length : 3,
                           backCardOffset: const Offset(0, 40),
-                          padding: const EdgeInsets.all(24.0),
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                           cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
                             if (index >= users.length) return const SizedBox.shrink();
                             return GestureDetector(

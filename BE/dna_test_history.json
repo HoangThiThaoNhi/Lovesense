@@ -1,5 +1,366 @@
 [
   {
+    "time": "2026-05-22T17:23:49.423Z",
+    "user_id": 1016,
+    "display_name": "nhi04",
+    "dna_vector": {
+      "extroversion": -1,
+      "intellectual_curiosity": 1,
+      "career_ambition": -0.6,
+      "family_goal": 1,
+      "spending_habit": -0.20000000000000007,
+      "physical_touch_need": 0.9,
+      "personal_space": -0.8,
+      "attachment_style": 0.5,
+      "communication_style": -0.4,
+      "conflict_approach": 0.2,
+      "financial_transparency": 0.1,
+      "religion_influence": 0.9,
+      "emotional_stability": 0.8,
+      "openness_to_exp": 0.5,
+      "travel_style": -0.7,
+      "social_circle": -0.7,
+      "loyalty_definition": 0.5
+    },
+    "report": {
+      "summary": "Bạn là một người có sự ổn định cảm xúc cao và luôn sẵn sàng cho những trải nghiệm mới, điều này thể hiện sự tự tin và lòng can đảm của bạn. Với nhu cầu gần gũi vật lý cao, bạn mong muốn một mối quan hệ lãng mạn và ấm áp. Tuy nhiên, bạn cũng có khuynh hướng hướng nội và có thể cần thời gian để mở lòng với người khác. Điều quan trọng là bạn cần tìm được sự cân bằng giữa việc khám phá thế giới bên ngoài và nuôi dưỡng mối quan hệ sâu sắc.",
+      "highlights": [
+        "✨ Bạn có sự ổn định cảm xúc cao, giúp bạn đối mặt với những thách thức trong mối quan hệ",
+        "✨ Bạn có nhu cầu gần gũi vật lý cao, thể hiện sự mong muốn một mối quan hệ lãng mạn và ấm áp",
+        "✨ Bạn có khuynh hướng hướng nội, nhưng với sự nỗ lực, bạn có thể mở lòng và xây dựng mối quan hệ sâu sắc"
+      ],
+      "ideal_vibe": "Người ấy là một người có thể hiểu và tôn trọng sự hướng nội của bạn, nhưng cũng biết cách khuyến khích bạn bước ra khỏi vùng an toàn và khám phá thế giới. Họ có sự ổn định cảm xúc và lòng kiên nhẫn, giúp bạn cảm thấy an toàn và được hỗ trợ trong mối quan hệ. Người ấy cũng có thể chia sẻ những trải nghiệm mới và thú vị với bạn, giúp bạn duy trì sự hứng thú và lòng can đảm. Với sự cân bằng giữa sự lãng mạn và thực tế, người ấy có thể trở thành một nửa lý tưởng của bạn.",
+      "debug_dna": {
+        "extroversion": -1,
+        "intellectual_curiosity": 1,
+        "career_ambition": -0.6,
+        "family_goal": 1,
+        "spending_habit": -0.20000000000000007,
+        "physical_touch_need": 0.9,
+        "personal_space": -0.8,
+        "attachment_style": 0.5,
+        "communication_style": -0.4,
+        "conflict_approach": 0.2,
+        "financial_transparency": 0.1,
+        "religion_influence": 0.9,
+        "emotional_stability": 0.8,
+        "openness_to_exp": 0.5,
+        "travel_style": -0.7,
+        "social_circle": -0.7,
+        "loyalty_definition": 0.5
+      }
+    }
+  },
+  {
+    "time": "2026-05-22T17:22:36.106Z",
+    "user_id": 1016,
+    "display_name": "nhi04",
+    "dna_vector": {
+      "extroversion": -0.2,
+      "social_circle": -0.8999999999999999,
+      "career_ambition": 0.9,
+      "spending_habit": -0.20000000000000007,
+      "romance_style": -0.3,
+      "personal_space": -0.8,
+      "attachment_style": 0.5,
+      "communication_style": 0.8,
+      "conflict_approach": 0.7,
+      "financial_transparency": 0.1,
+      "family_goal": 0.9,
+      "religion_influence": 0.9,
+      "emotional_stability": 0.8,
+      "openness_to_exp": 0.5,
+      "travel_style": -0.7,
+      "intellectual_curiosity": 0.9,
+      "loyalty_definition": 0.5
+    },
+    "report": {
+      "summary": "Bạn là một người có tham vọng sự nghiệp cao, luôn hướng tới việc phát triển bản thân và có một định hướng gia đình rõ ràng. Bạn cũng có một sự ổn định cảm xúc tốt, giúp bạn đối mặt với các tình huống khó khăn một cách sáng suốt. Tuy nhiên, bạn cũng có một chút hướng nội và có thể cần thời gian để mở lòng với người khác. Bạn có một sự cân bằng giữa sự chung thủy và sự độc lập, giúp bạn xây dựng mối quan hệ lành mạnh và bền vững.",
+      "highlights": [
+        "✨ Bạn có một tham vọng sự nghiệp cao và luôn hướng tới việc phát triển bản thân",
+        "✨ Bạn có một sự ổn định cảm xúc tốt, giúp bạn đối mặt với các tình huống khó khăn một cách sáng suốt",
+        "✨ Bạn có một sự cân bằng giữa sự chung thủy và sự độc lập, giúp bạn xây dựng mối quan hệ lành mạnh và bền vững",
+        "✨ Bạn có một sự mở rộng với trải nghiệm mới và sẵn sàng học hỏi",
+        "✨ Bạn có một sự quan tâm đến gia đình và muốn xây dựng một gia đình ấm áp"
+      ],
+      "ideal_vibe": "Người ấy là một người có một sự cân bằng giữa sự tự tin và sự khiêm tốn, có một sự ổn định cảm xúc tốt và có thể đối mặt với các tình huống khó khăn một cách sáng suốt. Người ấy cũng có một sự quan tâm đến gia đình và muốn xây dựng một gia đình ấm áp, có một sự chung thủy và sự độc lập phù hợp với bạn. Người ấy có thể là một người hướng ngoại, có một sự mở rộng với trải nghiệm mới và sẵn sàng học hỏi, giúp bạn phát triển bản thân và xây dựng mối quan hệ lành mạnh và bền vững.",
+      "debug_dna": {
+        "extroversion": -0.2,
+        "social_circle": -0.8999999999999999,
+        "career_ambition": 0.9,
+        "spending_habit": -0.20000000000000007,
+        "romance_style": -0.3,
+        "personal_space": -0.8,
+        "attachment_style": 0.5,
+        "communication_style": 0.8,
+        "conflict_approach": 0.7,
+        "financial_transparency": 0.1,
+        "family_goal": 0.9,
+        "religion_influence": 0.9,
+        "emotional_stability": 0.8,
+        "openness_to_exp": 0.5,
+        "travel_style": -0.7,
+        "intellectual_curiosity": 0.9,
+        "loyalty_definition": 0.5
+      }
+    }
+  },
+  {
+    "time": "2026-05-22T17:21:47.111Z",
+    "user_id": 1016,
+    "display_name": "nhi04",
+    "dna_vector": {
+      "extroversion": 0.8,
+      "social_circle": 0.7,
+      "career_ambition": -0.6,
+      "family_goal": -0.6,
+      "spending_habit": 0.7,
+      "romance_style": -0.3,
+      "personal_space": 0.9,
+      "attachment_style": -0.6,
+      "communication_style": 0.3,
+      "conflict_approach": -0.7,
+      "financial_transparency": 0.1,
+      "religion_influence": -0.8,
+      "emotional_stability": -0.8,
+      "travel_style": 0.9,
+      "openness_to_exp": 0.7,
+      "intellectual_curiosity": 0.9,
+      "loyalty_definition": 1
+    },
+    "report": {
+      "summary": "Bạn là một người hướng ngoại, luôn sẵn sàng khám phá những trải nghiệm mới và có một sự ổn định cảm xúc nhất định. Bạn có một sự tự tin và thoải mái trong việc thể hiện bản thân, nhưng cũng có một sự nhạy cảm và sâu sắc trong cách bạn tương tác với người khác. Bạn có một sự khao khát được yêu thương và được hiểu, và bạn sẵn sàng đầu tư thời gian và công sức để xây dựng một mối quan hệ sâu sắc và ý nghĩa.",
+      "highlights": [
+        "✨ Bạn là một người hướng ngoại, luôn sẵn sàng tham gia vào các hoạt động xã hội và khám phá những trải nghiệm mới",
+        "✨ Bạn có một sự tự tin và thoải mái trong việc thể hiện bản thân, nhưng cũng có một sự nhạy cảm và sâu sắc trong cách bạn tương tác với người khác",
+        "✨ Bạn có một sự khao khát được yêu thương và được hiểu, và bạn sẵn sàng đầu tư thời gian và công sức để xây dựng một mối quan hệ sâu sắc và ý nghĩa"
+      ],
+      "ideal_vibe": "Người ấy là một người có sự cân bằng giữa hướng ngoại và hướng nội, có thể hiểu và chia sẻ sự khao khát khám phá và trải nghiệm mới của bạn. Họ có một sự ổn định cảm xúc và có thể cung cấp một không gian an toàn và hỗ trợ cho bạn. Họ cũng có một sự tự tin và thoải mái trong việc thể hiện bản thân, nhưng cũng có một sự nhạy cảm và sâu sắc trong cách họ tương tác với bạn. Họ sẵn sàng lắng nghe và hiểu bạn, và cùng bạn xây dựng một mối quan hệ sâu sắc và ý nghĩa.",
+      "debug_dna": {
+        "extroversion": 0.8,
+        "social_circle": 0.7,
+        "career_ambition": -0.6,
+        "family_goal": -0.6,
+        "spending_habit": 0.7,
+        "romance_style": -0.3,
+        "personal_space": 0.9,
+        "attachment_style": -0.6,
+        "communication_style": 0.3,
+        "conflict_approach": -0.7,
+        "financial_transparency": 0.1,
+        "religion_influence": -0.8,
+        "emotional_stability": -0.8,
+        "travel_style": 0.9,
+        "openness_to_exp": 0.7,
+        "intellectual_curiosity": 0.9,
+        "loyalty_definition": 1
+      }
+    }
+  },
+  {
+    "time": "2026-04-28T08:52:25.364Z",
+    "user_id": 1014,
+    "display_name": "Vũ Thành",
+    "dna_vector": {
+      "extroversion": 0.8,
+      "social_circle": 0.3,
+      "career_ambition": 0.9,
+      "spending_habit": 0.7,
+      "romance_style": -0.3,
+      "personal_space": 0.9,
+      "attachment_style": -0.6,
+      "communication_style": 0.8,
+      "conflict_approach": 0.7,
+      "financial_transparency": -0.8,
+      "family_goal": 0.9,
+      "religion_influence": -0.8,
+      "emotional_stability": 0.8,
+      "openness_to_exp": 1,
+      "travel_style": 0.9,
+      "intellectual_curiosity": 0.3,
+      "loyalty_definition": -0.8
+    },
+    "report": {
+      "summary": "Bạn là người hướng ngoại với bản sắc cá nhân rõ ràng, luôn sẵn sàng để khám phá những trải nghiệm mới và có một sự ổn định cảm xúc đáng ngạc nhiên. Trong tình yêu, bạn có thể là người chủ động và thẳng thắn, với một sự cân bằng giữa sự tự tin và sự khiêm nhường. Tuy nhiên, bạn cũng có thể có một số điểm cần cải thiện, như việc đôi khi thiếu sự lãng mạn và có một số vấn đề về sự gắn kết.",
+      "highlights": [
+        "✨ Bạn có một tinh thần phiêu lưu và thích khám phá những điều mới mẻ",
+        "✨ Bạn tự tin và có khả năng giao tiếp tốt, giúp bạn xây dựng mối quan hệ sâu sắc",
+        "✨ Bạn có một sự ổn định cảm xúc và khả năng kiểm soát cảm xúc của mình"
+      ],
+      "ideal_vibe": "Người ấy là người có thể cân bằng và bổ sung cho những điểm mạnh và yếu của bạn. Họ nên là người có tinh thần tự do, yêu thích khám phá và có một sự ổn định cảm xúc tương tự. Người ấy cũng nên có khả năng giao tiếp tốt và có thể hiểu và chấp nhận những điểm khác biệt của bạn. Họ là người lãng mạn, biết cách thể hiện tình cảm và có một sự gắn kết sâu sắc với bạn.",
+      "debug_dna": {
+        "extroversion": 0.8,
+        "social_circle": 0.3,
+        "career_ambition": 0.9,
+        "spending_habit": 0.7,
+        "romance_style": -0.3,
+        "personal_space": 0.9,
+        "attachment_style": -0.6,
+        "communication_style": 0.8,
+        "conflict_approach": 0.7,
+        "financial_transparency": -0.8,
+        "family_goal": 0.9,
+        "religion_influence": -0.8,
+        "emotional_stability": 0.8,
+        "openness_to_exp": 1,
+        "travel_style": 0.9,
+        "intellectual_curiosity": 0.3,
+        "loyalty_definition": -0.8
+      }
+    }
+  },
+  {
+    "time": "2026-04-28T08:51:36.782Z",
+    "user_id": 1014,
+    "display_name": "Vũ Thành",
+    "dna_vector": {
+      "extroversion": -0.2,
+      "social_circle": -0.8999999999999999,
+      "career_ambition": -0.6,
+      "family_goal": 1,
+      "spending_habit": -0.20000000000000007,
+      "romance_style": -0.3,
+      "personal_space": -0.8,
+      "attachment_style": 0.5,
+      "communication_style": 1,
+      "conflict_approach": 1,
+      "financial_transparency": 0.1,
+      "emotional_stability": 0.8,
+      "openness_to_exp": 0.5,
+      "travel_style": -0.7,
+      "intellectual_curiosity": 0.9,
+      "loyalty_definition": 0.5
+    },
+    "report": {
+      "summary": "Bạn là người có định hướng gia đình rõ ràng, với giá trị cốt lõi về sự trung thành và ổn định trong mối quan hệ. Trong tình yêu, bạn có thể hơi hướng nội và cần không gian riêng, nhưng bạn cũng có khả năng gắn kết và mở lòng với trải nghiệm mới. Sự ổn định cảm xúc và khả năng giao tiếp hiệu quả là những điểm mạnh của bạn, giúp bạn xây dựng mối quan hệ sâu sắc và ý nghĩa.",
+      "highlights": [
+        "✨ Bạn có định hướng gia đình rõ ràng và coi trọng sự trung thành",
+        "✨ Bạn cần không gian riêng nhưng có khả năng gắn kết và mở lòng",
+        "✨ Bạn có khả năng giao tiếp hiệu quả và ổn định cảm xúc"
+      ],
+      "ideal_vibe": "Người ấy là người có thể bù trừ cho sự hướng nội của bạn bằng sự hướng ngoại và năng lượng tích cực. Họ có giá trị cốt lõi tương đồng về gia đình và sự trung thành, và có khả năng giao tiếp cởi mở và chân thành. Họ cũng có thể hiểu và tôn trọng không gian riêng của bạn, nhưng đồng thời biết cách tạo ra những khoảnh khắc lãng mạn và ý nghĩa trong mối quan hệ.",
+      "debug_dna": {
+        "extroversion": -0.2,
+        "social_circle": -0.8999999999999999,
+        "career_ambition": -0.6,
+        "family_goal": 1,
+        "spending_habit": -0.20000000000000007,
+        "romance_style": -0.3,
+        "personal_space": -0.8,
+        "attachment_style": 0.5,
+        "communication_style": 1,
+        "conflict_approach": 1,
+        "financial_transparency": 0.1,
+        "emotional_stability": 0.8,
+        "openness_to_exp": 0.5,
+        "travel_style": -0.7,
+        "intellectual_curiosity": 0.9,
+        "loyalty_definition": 0.5
+      }
+    }
+  },
+  {
+    "time": "2026-04-28T08:51:10.961Z",
+    "user_id": 1014,
+    "display_name": "Vũ Thành",
+    "dna_vector": {
+      "extroversion": -0.2,
+      "social_circle": -0.8999999999999999,
+      "career_ambition": -0.6,
+      "family_goal": 0.4,
+      "spending_habit": 0.7,
+      "physical_touch_need": 0.9,
+      "personal_space": -0.8,
+      "attachment_style": 0.5,
+      "communication_style": -0.4,
+      "conflict_approach": 0.2,
+      "financial_transparency": 0.9,
+      "religion_influence": 0.9,
+      "emotional_stability": -0.2,
+      "travel_style": 0.2,
+      "intellectual_curiosity": 0,
+      "loyalty_definition": 1
+    },
+    "report": {
+      "summary": "Bạn là một người có tính cách đặc biệt, với sự kết hợp giữa hướng nội và hướng ngoại. Bạn có thể là một người khá kín đáo, nhưng khi đã mở lòng, bạn sẽ trở thành một người bạn đồng hành tuyệt vời. Trong tình yêu, bạn coi trọng sự trung thực và ổn định cảm xúc, luôn cố gắng tạo ra một môi trường ấm áp và an toàn cho nửa kia. Bạn cũng có một chút nhu cầu gần gũi vật lý, nhưng không quá cấp thiết, và bạn đánh giá cao sự công khai tài chính trong mối quan hệ.",
+      "highlights": [
+        "✨ Bạn có một sự ổn định cảm xúc tương đối tốt, giúp bạn xử lý các tình huống khó khăn trong mối quan hệ",
+        "✨ Bạn có một nhu cầu gần gũi vật lý cao, nhưng không quá đáng kể, giúp bạn tạo ra sự thân mật trong mối quan hệ",
+        "✨ Bạn coi trọng sự trung thực và công khai tài chính trong mối quan hệ, giúp bạn xây dựng một nền tảng vững chắc cho tình yêu"
+      ],
+      "ideal_vibe": "Người ấy là một người có tính cách mở, sẵn sàng chia sẻ và lắng nghe. Họ có một sự tự tin và ổn định cảm xúc tốt, giúp họ trở thành một người bạn đồng hành đáng tin cậy. Họ cũng có một sự đánh giá cao về sự trung thực và công khai tài chính, giúp họ xây dựng một mối quan hệ vững chắc và lâu dài. Họ không quá cầu kỳ về vật chất, nhưng họ coi trọng sự quan tâm và chăm sóc trong mối quan hệ. Họ là một người bạn đồng hành tuyệt vời, luôn sẵn sàng hỗ trợ và chia sẻ cùng bạn trong mọi tình huống.",
+      "debug_dna": {
+        "extroversion": -0.2,
+        "social_circle": -0.8999999999999999,
+        "career_ambition": -0.6,
+        "family_goal": 0.4,
+        "spending_habit": 0.7,
+        "physical_touch_need": 0.9,
+        "personal_space": -0.8,
+        "attachment_style": 0.5,
+        "communication_style": -0.4,
+        "conflict_approach": 0.2,
+        "financial_transparency": 0.9,
+        "religion_influence": 0.9,
+        "emotional_stability": -0.2,
+        "travel_style": 0.2,
+        "intellectual_curiosity": 0,
+        "loyalty_definition": 1
+      }
+    }
+  },
+  {
+    "time": "2026-04-27T19:33:03.839Z",
+    "user_id": 1014,
+    "display_name": "Vũ Thành",
+    "dna_vector": {
+      "extroversion": -0.2,
+      "social_circle": -0.8999999999999999,
+      "career_ambition": -0.6,
+      "family_goal": 0.4,
+      "spending_habit": -0.8,
+      "physical_touch_need": 0.9,
+      "personal_space": -0.8,
+      "attachment_style": 0.5,
+      "communication_style": -0.4,
+      "conflict_approach": 0.2,
+      "financial_transparency": 0.9,
+      "religion_influence": 0.9,
+      "emotional_stability": -0.2,
+      "travel_style": 0.2,
+      "intellectual_curiosity": 0,
+      "loyalty_definition": 1
+    },
+    "report": {
+      "summary": "Bạn là một người có sự cân bằng giữa sự hướng nội và hướng ngoại, với một chút thiên hướng hướng nội hơn. Bạn có khả năng ổn định cảm xúc và có thể xử lý các tình huống một cách bình tĩnh. Trong tình yêu, bạn coi trọng sự trung thực và minh bạch về tài chính, cũng như sự tôn trọng và thấu hiểu trong giao tiếp. Bạn có nhu cầu gần gũi vật lý cao và coi trọng sự thân mật trong mối quan hệ.",
+      "highlights": [
+        "✨ Bạn có khả năng ổn định cảm xúc và xử lý các tình huống một cách bình tĩnh",
+        "✨ Bạn coi trọng sự trung thực và minh bạch về tài chính trong mối quan hệ",
+        "✨ Bạn có nhu cầu gần gũi vật lý cao và coi trọng sự thân mật trong mối quan hệ",
+        "✨ Bạn có khả năng giao tiếp một cách trực diện và tìm giải pháp trong các tình huống mâu thuẫn"
+      ],
+      "ideal_vibe": "Người ấy là một người có khả năng cân bằng giữa sự tự tin và khiêm tốn, với một chút thiên hướng hướng ngoại hơn. Họ có khả năng giao tiếp một cách trực diện và tìm giải pháp trong các tình huống mâu thuẫn. Họ coi trọng sự trung thực và minh bạch về tài chính, cũng như sự tôn trọng và thấu hiểu trong giao tiếp. Họ có thể hiểu và đáp ứng nhu cầu gần gũi vật lý cao của bạn, và cùng nhau xây dựng một mối quan hệ dựa trên sự tin tưởng và thấu hiểu.",
+      "debug_dna": {
+        "extroversion": -0.2,
+        "social_circle": -0.8999999999999999,
+        "career_ambition": -0.6,
+        "family_goal": 0.4,
+        "spending_habit": -0.8,
+        "physical_touch_need": 0.9,
+        "personal_space": -0.8,
+        "attachment_style": 0.5,
+        "communication_style": -0.4,
+        "conflict_approach": 0.2,
+        "financial_transparency": 0.9,
+        "religion_influence": 0.9,
+        "emotional_stability": -0.2,
+        "travel_style": 0.2,
+        "intellectual_curiosity": 0,
+        "loyalty_definition": 1
+      }
+    }
+  },
+  {
     "time": "2026-04-27T06:14:54.085Z",
     "user_id": 681,
     "display_name": "Đặng Khang",
