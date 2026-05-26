@@ -557,7 +557,7 @@ exports.getQuestions = async (req, res) => {
 
 exports.createQuestion = async (req, res) => {
     try {
-        const { content, text, category_id, category, priority, sub_category, weight, difficulty, type, options } = req.body;
+        const { content, text, category_id, category, priority, sub_category, weight, difficulty, type, options, set_id } = req.body;
         
         const finalContent = content || text;
         const finalCategoryId = category_id || category;
@@ -574,7 +574,8 @@ exports.createQuestion = async (req, res) => {
             weight: weight || 1,
             difficulty: difficulty || 'medium',
             type: type || 'mcq',
-            status: 'active'
+            status: 'active',
+            set_id: set_id || 1
         });
         
         if (options) {
@@ -621,7 +622,7 @@ exports.aiSuggestMappings = async (req, res) => {
 exports.updateQuestion = async (req, res) => {
     try {
         const { id } = req.params;
-        const { content, text, category_id, category, priority, sub_category, weight, difficulty, type, status, options } = req.body;
+        const { content, text, category_id, category, priority, sub_category, weight, difficulty, type, status, options, set_id } = req.body;
         const question = await QuizQuestion.findByPk(id);
         if (!question) return res.status(404).json({ error: 'Question not found' });
 
@@ -633,7 +634,8 @@ exports.updateQuestion = async (req, res) => {
             weight,
             difficulty,
             type,
-            status
+            status,
+            set_id: set_id !== undefined ? set_id : question.set_id
         });
 
         // Handle options update if provided

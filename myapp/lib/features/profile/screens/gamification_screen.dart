@@ -267,9 +267,9 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen> {
         // Bước 3: Chủ động tìm kiếm (Quẹt và Làm mới)
         _buildGuideItem(
           icon: '💖',
-          title: 'Làm mới khám phá',
-          desc: 'Mở rộng cơ hội gặp gỡ người mới',
-          xp: '+10 mỗi lượt',
+          title: 'Trả lời mỗi câu hỏi AI DNA',
+          desc: 'Tìm hiểu bản thân và tìm kiếm đối phương phù hợp',
+          xp: '+5 mỗi lượt',
           color: Colors.pink,
         ),
         _buildDivider(),
@@ -277,9 +277,9 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen> {
         // Bước 4: Chuẩn bị chiến thuật (Sử dụng AI hỗ trợ)
         _buildGuideItem(
           icon: '🤖',
-          title: 'Hỏi ý kiến Cố vấn AI',
+          title: 'Sử dụng Chatbot AI',
           desc: 'Để AI giúp bạn thấu hiểu đối phương',
-          xp: '+40 mỗi lượt',
+          xp: '+10 mỗi lượt',
           color: Colors.purple,
         ),
         _buildDivider(),
@@ -287,11 +287,20 @@ class _GamificationScreenState extends ConsumerState<GamificationScreen> {
         // Bước 5: Hành động (Trò chuyện kết nối)
         _buildGuideItem(
           icon: '💬',
-          title: 'Trò chuyện kết nối',
-          desc: 'Gửi những lời nhắn chân thành nhất',
-          xp: '+10 mỗi tin nhắn',
+          title: 'Làm mới danh sách',
+          desc: 'Cập nhật đối tượng mới',
+          xp: '+10 mỗi lượt',
           color: Colors.green,
         ),
+        _buildDivider(),
+        _buildGuideItem(
+          icon: '⭐',
+          title: 'Nhận được Super like',
+          desc: 'Bạn trở thành đối tượng được yêu thích',
+          xp: '+50 mỗi người',
+          color: Colors.green,
+        ),
+        
       ],
     );
   }

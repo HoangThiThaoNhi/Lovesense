@@ -12,7 +12,7 @@ const Notification = sequelize.define('Notification', {
         allowNull: false
     },
     type: {
-        type: DataTypes.ENUM('match', 'message', 'xp', 'title', 'ai_insight', 'system'),
+        type: DataTypes.ENUM('match', 'message', 'xp', 'title', 'ai_insight', 'system', 'gift'),
         defaultValue: 'system'
     },
     title: {

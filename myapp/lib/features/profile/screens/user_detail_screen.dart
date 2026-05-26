@@ -232,29 +232,22 @@ class _UserDetailScreenState extends ConsumerState<UserDetailScreen> {
       children: [
         Row(
           children: [
-            Text(
-              '${user.name}, ${user.age}',
-              style: const TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1,
-                color: Colors.black87,
+            Expanded(
+              child: Text(
+                '${user.name}, ${user.age}',
+                style: const TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                  color: Colors.black87,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 8),
             if (user.isVerified)
               const Icon(Icons.verified, color: Colors.blue, size: 28),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-            const SizedBox(width: 4),
-            Text(
-              'Cách bạn ${user.distanceKm} km${user.livingAt != null && user.livingAt!.isNotEmpty ? ' • ${user.livingAt}' : ''}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 16, fontWeight: FontWeight.w500),
-            ),
           ],
         ),
       ],
@@ -331,10 +324,15 @@ class _UserDetailScreenState extends ConsumerState<UserDetailScreen> {
         Icon(icon, size: 20, color: Colors.grey[600]),
         const SizedBox(width: 12),
         Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 15)),
-        const Spacer(),
-        Text(
-          value[0].toUpperCase() + value.substring(1),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            value.isNotEmpty ? (value[0].toUpperCase() + value.substring(1)) : '',
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

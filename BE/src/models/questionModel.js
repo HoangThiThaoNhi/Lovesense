@@ -38,6 +38,11 @@ const Question = sequelize.define('Question', {
     status: {
         type: DataTypes.ENUM('active', 'draft', 'archived'),
         defaultValue: 'active'
+    },
+    set_id: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1,
+        allowNull: false
     }
 }, {
     tableName: 'questions',

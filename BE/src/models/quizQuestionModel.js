@@ -38,6 +38,11 @@ const QuizQuestion = sequelize.define('QuizQuestion', {
     type: {
         type: DataTypes.ENUM('mcq', 'open'),
         defaultValue: 'mcq'
+    },
+    set_id: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1,
+        allowNull: false
     }
 }, {
     tableName: 'quiz_questions',

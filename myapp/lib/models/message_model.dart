@@ -76,6 +76,8 @@ class ChatMatch {
   final String status;
   final String user1Id;
   final String user2Id;
+  final int myMessageCount;
+  final int otherMessageCount;
 
   ChatMatch({
     required this.id,
@@ -87,5 +89,35 @@ class ChatMatch {
     this.status = 'accepted',
     this.user1Id = '',
     this.user2Id = '',
+    this.myMessageCount = 0,
+    this.otherMessageCount = 0,
   });
+
+  ChatMatch copyWith({
+    String? id,
+    String? userId,
+    String? name,
+    String? imageUrl,
+    DateTime? matchedAt,
+    Message? lastMessage,
+    String? status,
+    String? user1Id,
+    String? user2Id,
+    int? myMessageCount,
+    int? otherMessageCount,
+  }) {
+    return ChatMatch(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      imageUrl: imageUrl ?? this.imageUrl,
+      matchedAt: matchedAt ?? this.matchedAt,
+      lastMessage: lastMessage ?? this.lastMessage,
+      status: status ?? this.status,
+      user1Id: user1Id ?? this.user1Id,
+      user2Id: user2Id ?? this.user2Id,
+      myMessageCount: myMessageCount ?? this.myMessageCount,
+      otherMessageCount: otherMessageCount ?? this.otherMessageCount,
+    );
+  }
 }

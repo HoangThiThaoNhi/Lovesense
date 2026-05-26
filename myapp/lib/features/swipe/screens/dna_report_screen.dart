@@ -254,10 +254,14 @@ class _DNAReportScreenState extends ConsumerState<DNAReportScreen> {
                   ),
                   child: ElevatedButton(
                     onPressed: () async {
+                      // Fetch the latest profile data to update user's DNA scores locally
+                      await ref.read(authProvider.notifier).fetchProfile();
+
                       // 1. Auto-enable DNA Mode
                       final currentFilter = ref.read(swipeProvider).filter;
                       ref.read(swipeProvider.notifier).updateFilters(
                         currentFilter.copyWith(ignoreDNA: false),
+                        fetch: false,
                       );
 
                       // 2. Perform a refresh

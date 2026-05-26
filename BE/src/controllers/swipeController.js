@@ -17,22 +17,29 @@ exports.getDiscovery = async (req, res) => {
         const userId = req.user.id;
         const { lat: queryLat, lng: queryLng, minAge, maxAge, maxDistance, useInterests } = req.query;
         
-        // Cập nhật vị trí người dùng nếu được gửi kèm trong query (Seamless update)
-        if (queryLat && queryLng) {
-            try {
-                await Profile.update({
-                    location: { type: 'Point', coordinates: [parseFloat(queryLng), parseFloat(queryLat)] }
-                }, { where: { user_id: userId } });
-                console.log(`[Discovery] Cập nhật vị trí User ${userId} từ query: (${queryLat}, ${queryLng})`);
-            } catch (updateError) {
-                console.error('[Discovery Location Update Error]:', updateError);
-            }
-        }
-
         const profile = await Profile.findByUserId(userId);
         
         if (!profile) {
             return res.status(404).json({ error: 'Profile not found' });
+        }
+
+        // Cập nhật vị trí người dùng nếu được gửi kèm trong query và có thay đổi (Seamless update)
+        if (queryLat && queryLng) {
+            const newLat = parseFloat(queryLat);
+            const newLng = parseFloat(queryLng);
+            
+            if (profile.lat !== newLat || profile.lng !== newLng) {
+                try {
+                    await Profile.update({
+                        location: { type: 'Point', coordinates: [newLng, newLat] }
+                    }, { where: { user_id: userId } });
+                    console.log(`[Discovery] Cập nhật vị trí User ${userId} từ query: (${newLat}, ${newLng})`);
+                    profile.lat = newLat;
+                    profile.lng = newLng;
+                } catch (updateError) {
+                    console.error('[Discovery Location Update Error]:', updateError);
+                }
+            }
         }
 
         // Get user surveys for match score calculation
@@ -53,12 +60,16 @@ exports.getDiscovery = async (req, res) => {
             }
         }
 
+        const useInterestsFinal = useInterests !== undefined 
+            ? useInterests === 'true' 
+            : (profile.ai_match_keywords && profile.ai_match_keywords.length > 0);
+
         const discoveryFilters = {
             minAge: parseInt(minAge) || 18,
             maxAge: parseInt(maxAge) || 100,
             maxDistance: parseInt(maxDistance) || 20000,
             ignoreDNA: req.query.ignoreDNA === 'true',
-            useInterests: (useInterests === 'true') || (profile.ai_match_keywords && profile.ai_match_keywords.length > 0), 
+            useInterests: useInterestsFinal, 
             userInterests: profile.interests || [],
             lookingFor: lookingFor,
             aiKeywords: profile.ai_match_keywords || []

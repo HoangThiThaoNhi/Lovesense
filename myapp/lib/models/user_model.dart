@@ -43,7 +43,7 @@ class User {
     required this.bio,
     required this.job,
     required this.imageUrls,
-    required this.photos,
+    this.photos = const [],
     required this.interests,
     required this.distanceKm,
     this.isVerified = false,

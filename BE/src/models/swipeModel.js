@@ -211,7 +211,18 @@ Swipe.getDiscoveryList = async function (userId, userLat, userLng, surveys = [],
             try { aiPrefs = JSON.parse(aiPrefs); } catch(e) { aiPrefs = {}; }
         }
 
-        const ignoreDNA = filters.ignoreDNA === true || filters.ignoreDNA === 'true';
+        // Check if the swiper has completed the DNA quiz
+        const hasCompletedDNA = (u) => {
+            if (!u) return false;
+            const scores = [
+                'ambition_score', 'personality_score', 'career_score', 
+                'core_values_score', 'interests_score', 'lifestyle_score', 
+                'family_orientation_score'
+            ];
+            return scores.some(key => (parseFloat(u[key]) || 0) > 0);
+        };
+        const swiperHasDNA = swiper && swiper.user ? hasCompletedDNA(swiper.user) : false;
+        const ignoreDNA = (filters.ignoreDNA === true || filters.ignoreDNA === 'true') || !swiperHasDNA;
 
         rows = rows.map(row => {
             // 1. DNA Similarity (Quantitative) - Set to 0 if ignoring DNA

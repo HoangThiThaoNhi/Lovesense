@@ -50,26 +50,48 @@ exports.createQuestion = async (req, res) => {
 // --- APP APIs ---
 
 /**
- * Lấy danh sách quiz cho App Flutter hiển thị
+ * Lấy danh sách quiz cho App Flutter hiển thị (Chọn ngẫu nhiên 1 trong 6 bộ cốt lõi gồm 7 câu)
  */
 exports.getQuiz = async (req, res) => {
     try {
+        const userId = req.user.id;
+
+        // 1. Get all unique set_ids available in active questions
+        const distinctSets = await QuizQuestion.findAll({
+            attributes: ['set_id'],
+            group: ['set_id'],
+            where: { status: 'active' }
+        });
+        
+        const setIds = distinctSets.map(q => q.set_id).filter(id => id != null);
+        const randomSetId = setIds.length > 0 ? setIds[Math.floor(Math.random() * setIds.length)] : 1;
+
+        console.log(`[Quiz] Selected random set_id: ${randomSetId} for user ${userId}`);
+
+        // 2. Fetch the 7 questions of this set
         const questions = await QuizQuestion.findAll({
-            where: { status: 'active' },
+            where: { status: 'active', set_id: randomSetId },
             include: [{
                 model: QuizOption,
                 as: 'options',
-                attributes: ['id', 'label', 'meta_hint'] // Không trả về mappings để tránh user hack
+                attributes: ['id', 'label', 'meta_hint']
             }],
             order: [['priority', 'ASC']]
         });
 
-        // Reset dna_vector khi bắt đầu bài mới để kết quả không bị cộng dồn từ lần trước
-        // KHÔNG reset dna_report để user vẫn xem được kết quả cũ nếu bỏ quiz giữa chừng
-        // dna_report sẽ bị ghi đè khi hoàn thành bài mới
-        const userId = req.user.id;
-        await Profile.update({ dna_vector: {} }, { where: { user_id: userId } });
-        console.log(`[Quiz] Reset DNA vector for user ${userId} - starting fresh quiz session (old report preserved until new one is generated)`);
+        // 3. Reset dna_vector and set quiz_session_state
+        await Profile.update({
+            dna_vector: {},
+            quiz_session_state: {
+                current_set_id: randomSetId,
+                answered_question_ids: [],
+                stage: 1,
+                answered_questions: [],
+                generated_questions: []
+            }
+        }, { where: { user_id: userId } });
+
+        console.log(`[Quiz] Reset DNA vector & initialized quiz_session_state for user ${userId}`);
         
         res.json(questions);
     } catch (error) {
@@ -77,59 +99,161 @@ exports.getQuiz = async (req, res) => {
     }
 };
 
-
 /**
- * Xử lý khi user trả lời một câu hỏi
+ * Xử lý khi user trả lời một câu hỏi (Hỗ trợ cả câu hỏi tĩnh trong DB và câu hỏi động do AI sinh ra)
  */
 exports.submitAnswer = async (req, res) => {
     try {
         const userId = req.user.id;
         const { optionId } = req.body;
+        const crypto = require('crypto');
+
+        if (!optionId) {
+            return res.status(400).json({ error: 'Thiếu optionId trong yêu cầu.' });
+        }
         
-        const option = await QuizOption.findByPk(optionId, {
-            include: [{ model: QuizQuestion, as: 'question' }]
-        });
-        
-        if (!option) return res.status(404).json({ error: 'Option not found' });
-        
-        // 1. Cập nhật DNA Vector trong Profile
         const profile = await Profile.findOne({ where: { user_id: userId } });
-        
-        // Đảm bảo dnaVector là Object (đề phòng DB trả về String)
+        let sessionState = profile.quiz_session_state || { answered_question_ids: [], stage: 1, answered_questions: [], generated_questions: [] };
+        if (typeof sessionState === 'string') {
+            try { sessionState = JSON.parse(sessionState); } catch(e) { sessionState = { answered_question_ids: [], stage: 1, answered_questions: [], generated_questions: [] }; }
+        }
+        if (!sessionState.answered_questions) sessionState.answered_questions = [];
+        if (!sessionState.generated_questions) sessionState.generated_questions = [];
+
+        let option = null;
+        let isDynamic = false;
+        let questionContent = "";
+        let optionLabel = "";
+        let mappings = [];
+        let questionId = null;
+
+        // 1. Check if optionId is from a dynamically generated question (case-insensitive string comparison)
+        if (sessionState.generated_questions && Array.isArray(sessionState.generated_questions)) {
+            for (const q of sessionState.generated_questions) {
+                const opt = q.options.find(o => String(o.id).toLowerCase() === String(optionId).toLowerCase());
+                if (opt) {
+                    option = opt;
+                    isDynamic = true;
+                    questionContent = q.content;
+                    optionLabel = opt.label;
+                    mappings = opt.mappings || [];
+                    questionId = q.id;
+                    break;
+                }
+            }
+        }
+
+        // 2. If not dynamic, search database (static question)
+        if (!option) {
+            const dbOption = await QuizOption.findOne({
+                where: { id: optionId },
+                include: [{ model: QuizQuestion, as: 'question' }]
+            });
+            if (!dbOption) return res.status(404).json({ error: 'Option not found' });
+            option = dbOption;
+            questionContent = dbOption.question.content;
+            optionLabel = dbOption.label;
+            mappings = dbOption.mappings || [];
+            questionId = dbOption.question.id;
+        }
+
+        // 3. Update DNA Vector in Profile
         let dnaVector = profile.dna_vector || {};
         if (typeof dnaVector === 'string') {
             try { dnaVector = JSON.parse(dnaVector); } catch(e) { dnaVector = {}; }
         }
-        
-        // Đảm bảo mappings là Array
-        let mappings = option.mappings || [];
+
         if (typeof mappings === 'string') {
             try { mappings = JSON.parse(mappings); } catch(e) { mappings = []; }
         }
-        
+
         console.log(`[Quiz] Processing answer for User ${userId}. Current DNA:`, JSON.stringify(dnaVector));
         console.log(`[Quiz] Mappings to apply:`, JSON.stringify(mappings));
 
         if (Array.isArray(mappings)) {
             mappings.forEach(mapping => {
                 const currentScore = dnaVector[mapping.criteria_id] || 0;
-                // Giới hạn score trong khoảng [-1.0, 1.0]
                 dnaVector[mapping.criteria_id] = Math.max(-1.0, Math.min(1.0, currentScore + (mapping.score_delta || 0)));
             });
         }
-        
-        await profile.update({ dna_vector: dnaVector });
-        console.log(`[Quiz] Updated DNA Vector:`, JSON.stringify(dnaVector));
-        
-        // 2. Thưởng điểm XP (Mỗi câu hỏi DNA cộng 5 XP)
+
+        // 4. Update sessionState progress
+        if (!sessionState.answered_question_ids.includes(questionId)) {
+            sessionState.answered_question_ids.push(questionId);
+            sessionState.answered_questions.push({
+                question_text: questionContent,
+                selected_option_label: optionLabel
+            });
+        }
+
+        // 5. Check if we just completed Stage 1 (first 7 questions)
+        let nextQuestions = null;
+        if (sessionState.stage === 1 && sessionState.answered_question_ids.length === 7) {
+            console.log(`[Quiz] Stage 1 completed for user ${userId}. Generating dynamic follow-up questions...`);
+            
+            // Generate follow-up questions based on answers and current DNA Vector
+            const nextQuestionsData = await AIService.generateDynamicFollowUpQuestions(
+                sessionState.answered_questions,
+                dnaVector
+            );
+
+            // Format dynamic questions with temporary IDs (UUID v4)
+            const formattedNextQuestions = nextQuestionsData.map(q => {
+                const qId = crypto.randomUUID();
+                return {
+                    id: qId,
+                    content: q.content,
+                    category_id: q.category_id || 'G1_PERSONALITY',
+                    sub_category: q.sub_category || 'general',
+                    type: 'mcq',
+                    options: (q.options || []).map(opt => ({
+                        id: crypto.randomUUID(),
+                        question_id: qId,
+                        label: opt.label,
+                        mappings: opt.mappings || [],
+                        meta_hint: opt.meta_hint || ''
+                    }))
+                };
+            });
+
+            // Cache formatted questions in sessionState
+            sessionState.generated_questions = formattedNextQuestions;
+            sessionState.stage = 2;
+
+            // Strip mappings before sending to mobile client for security
+            nextQuestions = formattedNextQuestions.map(q => ({
+                id: q.id,
+                content: q.content,
+                category_id: q.category_id,
+                sub_category: q.sub_category,
+                type: q.type,
+                options: q.options.map(opt => ({
+                    id: opt.id,
+                    label: opt.label,
+                    meta_hint: opt.meta_hint
+                }))
+            }));
+            console.log(`[Quiz] Generated ${nextQuestions.length} follow-up questions for user ${userId}`);
+        }
+
+        // Explicitly set JSON change flags to force Sequelize to generate SQL UPDATE
+        profile.dna_vector = dnaVector;
+        profile.quiz_session_state = sessionState;
+        profile.changed('dna_vector', true);
+        profile.changed('quiz_session_state', true);
+        await profile.save();
+        console.log(`[Quiz] Updated DNA Vector and quiz_session_state in DB for user ${userId}:`, JSON.stringify(dnaVector));
+
+        // 6. Award XP points
         const points = 5;
-        const gamification = await GamificationService.awardPoints(userId, points, `Trả lời câu hỏi AI DNA: ${option.question.content.substring(0, 30)}...`, { skipNotification: true });
-        
-        res.json({ 
-            message: 'Answer processed', 
+        const gamification = await GamificationService.awardPoints(userId, points, `Trả lời câu hỏi AI DNA: ${questionContent.substring(0, 30)}...`, { skipNotification: true });
+
+        res.json({
+            message: 'Answer processed',
             dna_vector: dnaVector,
             points_added: points,
-            gamification
+            gamification,
+            next_questions: nextQuestions
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -230,7 +354,7 @@ exports.generateDNAReport = async (req, res) => {
         // Notification
         await Notification.create({
             user_id: userId,
-            type: 'ai_analysis',
+            type: 'ai_insight',
             title: '✨ Giải mã DNA Soulmate thành công!',
             content: 'Chúc mừng! Bạn đã hoàn thành bài trắc nghiệm DNA. Lovesense AI đã cập nhật hồ sơ và sẵn sàng tìm kiếm nửa kia hoàn hảo cho bạn.',
             metadata: { report_summary: (report.user_summary || '').substring(0, 50) }

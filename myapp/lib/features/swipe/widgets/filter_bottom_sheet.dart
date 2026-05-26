@@ -4,6 +4,7 @@ import '../providers/swipe_provider.dart';
 import '../../../../shared_widgets/glass_container.dart';
 import '../../../../theme.dart';
 import 'package:go_router/go_router.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class DiscoveryFilterBottomSheet extends ConsumerStatefulWidget {
   const DiscoveryFilterBottomSheet({super.key});
@@ -81,12 +82,22 @@ class _DiscoveryFilterBottomSheetState extends ConsumerState<DiscoveryFilterBott
                   Text('Bộ lọc tìm kiếm', style: AppTextStyles.titleLarge),
                   TextButton(
                     onPressed: () {
+                      final user = ref.read(authProvider).currentUser;
+                      final hasDna = user != null && (
+                        user.ambitionScore > 0 ||
+                        user.personalityScore > 0 ||
+                        user.careerScore > 0 ||
+                        user.coreValuesScore > 0 ||
+                        user.interestsScore > 0 ||
+                        user.lifestyleScore > 0 ||
+                        user.familyOrientationScore > 0
+                      );
                       setState(() {
                         _minAge = 18;
                         _maxAge = 100;
                         _maxDistance = 20000;
                         _useInterests = false;
-                        _ignoreDNA = false;
+                        _ignoreDNA = !hasDna;
                         _minAgeController.text = '18';
                         _maxAgeController.text = '100';
                         _maxDistanceController.text = '20000';

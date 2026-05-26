@@ -121,6 +121,11 @@ const Profile = sequelize.define('Profile', {
         allowNull: true,
         defaultValue: null
     },
+    quiz_session_state: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: null
+    },
     updated_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW

@@ -8,6 +8,7 @@ import 'features/profile/screens/profile_setup_screen.dart';
 import 'features/swipe/screens/home_swipe_screen.dart';
 import 'features/chat/screens/chat_list_screen.dart';
 import 'features/chat/screens/chat_detail_screen.dart';
+import 'features/chat/screens/awaiting_connections_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
 import 'features/profile/screens/settings_screen.dart';
 import 'features/profile/screens/account_settings_screen.dart';
@@ -302,6 +303,11 @@ final routerProvider = Provider<GoRouter>((ref) {
            final user = state.extra as User;
            return ChatDetailScreen(matchId: matchId, user: user);
         },
+      ),
+      GoRoute(
+        path: '/awaiting-connections',
+        name: 'awaiting_connections',
+        builder: (context, state) => const AwaitingConnectionsScreen(),
       ),
       GoRoute(
         path: '/settings',

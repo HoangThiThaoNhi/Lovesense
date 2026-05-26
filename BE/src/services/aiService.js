@@ -294,6 +294,147 @@ class AIService {
         
         return scores;
     }
+
+    async generateDynamicFollowUpQuestions(initialAnswers, currentDnaVector) {
+        const criteriaFramework = require('../config/anof.json');
+        
+        const prompt = `
+            Bạn là một AI chuyên gia tâm lý học, tính cách học và thuật toán ghép đôi cho ứng dụng hẹn hò Lovesense.
+            
+            Dựa trên 7 câu trả lời khảo sát ban đầu của người dùng:
+            ${JSON.stringify(initialAnswers)}
+            
+            Và điểm số DNA hiện tại của họ:
+            ${JSON.stringify(currentDnaVector)}
+            
+            Bảng tiêu chuẩn đo lường (criteria_framework):
+            ${JSON.stringify(criteriaFramework.criteria_framework)}
+            
+            NHIỆM VỤ:
+            Hãy tạo thêm từ 7 đến 14 câu hỏi trắc nghiệm đào sâu (chuyên sâu) dựa trên câu trả lời trên để làm rõ tính cách, thế giới quan, thói quen tài chính hoặc giải quyết xung đột của họ (mục đích là sơ đồ hóa chi tiết và chính xác hơn).
+            
+            YÊU CẦU:
+            1. Mỗi câu hỏi phải là câu hỏi trắc nghiệm (MCQ) có đúng 3 lựa chọn đáp án.
+            2. Các câu hỏi viết bằng tiếng Việt tự nhiên, phù hợp với giới trẻ (Gen Z).
+            3. Mỗi lựa chọn đáp án của từng câu hỏi phải được gán chỉ số thay đổi điểm số (mappings) tương ứng với các tiêu chí trong criteria_framework. Mỗi mapping gồm: "criteria_id" (phải trùng với id trong criteria_framework như extroversion, emotional_stability, spending_habit, family_goal, v.v...) và "score_delta" (giá trị số thực từ -1.0 đến 1.0, biểu diễn mức độ tăng/giảm của tiêu chí đó).
+            
+            TRẢ VỀ DUY NHẤT MỘT MẢNG JSON, KHÔNG BỌC TRONG BẤT KỲ ĐOẠN VĂN GIẢI THÍCH NÀO KHÁC (Chỉ có JSON thuần túy):
+            [
+              {
+                "content": "Nội dung câu hỏi...",
+                "category_id": "G1_PERSONALITY",
+                "sub_category": "attachment_style",
+                "options": [
+                  {
+                    "label": "Nhãn lựa chọn 1...",
+                    "mappings": [
+                      { "criteria_id": "attachment_style", "score_delta": 0.5 }
+                    ],
+                    "meta_hint": "anxious_attachment"
+                  },
+                  ... (đúng 3 options)
+                ]
+              },
+              ... (từ 7 đến 14 câu hỏi)
+            ]
+        `;
+
+        try {
+            // Call Gemini
+            let text = await this.generateResponse(prompt);
+            
+            // Clean markdown code blocks if any
+            text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                if (Array.isArray(parsed) && parsed.length >= 7) {
+                    console.log(`[aiService] Dynamically generated ${parsed.length} questions successfully via Gemini.`);
+                    return parsed;
+                }
+            }
+        } catch (e) {
+            console.error('[AI Dynamic Questions Error]:', e);
+        }
+        
+        console.log('[aiService] Dynamic question generation failed or returned invalid format. Returning fallback questions.');
+        return this.getFallbackFollowUpQuestions();
+    }
+
+    getFallbackFollowUpQuestions() {
+        return [
+            {
+                content: "Bạn cảm thấy thế nào về việc chia sẻ không gian riêng tư (personal space) khi đang trong một mối quan hệ?",
+                category_id: "G6_CONFLICT_RESOLUTION",
+                sub_category: "personal_space",
+                options: [
+                    { label: "Cần sự kết nối 24/7, luôn muốn ở bên cạnh nhau", mappings: [{ criteria_id: "personal_space", score_delta: -0.8 }, { criteria_id: "attachment_style", score_delta: 0.5 }], meta_hint: "anxious" },
+                    { label: "Cần sự cân bằng, có những khoảng nghỉ cho sở thích cá nhân", mappings: [{ criteria_id: "personal_space", score_delta: 0.2 }, { criteria_id: "attachment_style", score_delta: -0.1 }], meta_hint: "secure" },
+                    { label: "Rất coi trọng không gian riêng, không muốn bị kiểm soát", mappings: [{ criteria_id: "personal_space", score_delta: 0.9 }, { criteria_id: "attachment_style", score_delta: -0.6 }], meta_hint: "avoidant" }
+                ]
+            },
+            {
+                content: "Khi hai người bất đồng ý kiến về việc dọn dẹp nhà cửa, bạn thường:",
+                category_id: "G5_LIFESTYLE_HABITS",
+                sub_category: "cleanliness_level",
+                options: [
+                    { label: "Rần rần khó chịu nếu không ngăn nắp ngay lập tức", mappings: [{ criteria_id: "cleanliness_level", score_delta: 0.8 }], meta_hint: "clean_high" },
+                    { label: "Dọn dẹp định kỳ vào cuối tuần, không quá khắt khe", mappings: [{ criteria_id: "cleanliness_level", score_delta: 0.2 }], meta_hint: "clean_medium" },
+                    { label: "Để tự nhiên khi nào quá bừa bộn mới dọn", mappings: [{ criteria_id: "cleanliness_level", score_delta: -0.8 }], meta_hint: "clean_low" }
+                ]
+            },
+            {
+                content: "Quan điểm của bạn về việc thử các món ăn lạ hoặc hoạt động mạo hiểm mới?",
+                category_id: "G1_PERSONALITY",
+                sub_category: "openness_to_exp",
+                options: [
+                    { label: "Luôn hào hứng và sẵn sàng trải nghiệm ngay", mappings: [{ criteria_id: "openness_to_exp", score_delta: 0.9 }], meta_hint: "open_high" },
+                    { label: "Cần tìm hiểu kỹ trước khi quyết định thử", mappings: [{ criteria_id: "openness_to_exp", score_delta: 0.3 }], meta_hint: "open_medium" },
+                    { label: "Thích sự an toàn và những thói quen cũ quen thuộc", mappings: [{ criteria_id: "openness_to_exp", score_delta: -0.7 }], meta_hint: "open_low" }
+                ]
+            },
+            {
+                content: "Khi xảy ra cãi vã, mục tiêu chính của bạn là gì?",
+                category_id: "G6_CONFLICT_RESOLUTION",
+                sub_category: "conflict_approach",
+                options: [
+                    { label: "Giải quyết triệt để vấn đề ngay lúc đó", mappings: [{ criteria_id: "conflict_approach", score_delta: 0.8 }], meta_hint: "solution_oriented" },
+                    { label: "Xoa dịu cảm xúc của cả hai trước khi phân tích đúng sai", mappings: [{ criteria_id: "conflict_approach", score_delta: 0.2 }], meta_hint: "emotion_oriented" },
+                    { label: "Thể hiện sự tức giận và muốn đối phương nhận lỗi", mappings: [{ criteria_id: "conflict_approach", score_delta: -0.7 }], meta_hint: "blame_oriented" }
+                ]
+            },
+            {
+                content: "Thói quen đọc sách hoặc học hỏi kiến thức mới ngoài công việc của bạn là:",
+                category_id: "G7_INTERESTS_GROWTH",
+                sub_category: "intellectual_curiosity",
+                options: [
+                    { label: "Học hỏi mỗi ngày, tìm tòi qua sách hoặc khóa học", mappings: [{ criteria_id: "intellectual_curiosity", score_delta: 0.8 }], meta_hint: "curious_high" },
+                    { label: "Chỉ đọc hoặc học khi thực sự cần thiết", mappings: [{ criteria_id: "intellectual_curiosity", score_delta: 0.2 }], meta_hint: "curious_medium" },
+                    { label: "Dành thời gian rảnh để giải trí thư giãn thuần túy", mappings: [{ criteria_id: "intellectual_curiosity", score_delta: -0.5 }], meta_hint: "curious_low" }
+                ]
+            },
+            {
+                content: "Khung thời gian hoạt động hiệu quả nhất của bạn là khi nào?",
+                category_id: "G5_LIFESTYLE_HABITS",
+                sub_category: "circadian_rhythm",
+                options: [
+                    { label: "Dậy sớm từ 5-6h sáng, làm việc tốt nhất buổi sáng", mappings: [{ criteria_id: "circadian_rhythm", score_delta: 0.8 }], meta_hint: "early_bird" },
+                    { label: "Nhịp sinh học bình thường theo giờ hành chính", mappings: [{ criteria_id: "circadian_rhythm", score_delta: 0.1 }], meta_hint: "normal" },
+                    { label: "Hoạt động mạnh mẽ và tập trung nhất vào ban đêm", mappings: [{ criteria_id: "circadian_rhythm", score_delta: -0.8 }], meta_hint: "night_owl" }
+                ]
+            },
+            {
+                content: "Mức độ chia sẻ tài chính cá nhân với người yêu khi hẹn hò nghiêm túc:",
+                category_id: "G3_FINANCIAL_LIFESTYLE",
+                sub_category: "financial_transparency",
+                options: [
+                    { label: "Công khai hoàn toàn thu nhập và chi tiêu", mappings: [{ criteria_id: "financial_transparency", score_delta: 0.9 }], meta_hint: "transparent_high" },
+                    { label: "Chỉ chia sẻ các khoản chi tiêu chung, giữ bí mật cá nhân", mappings: [{ criteria_id: "financial_transparency", score_delta: 0.2 }], meta_hint: "transparent_medium" },
+                    { label: "Giữ độc lập tài chính tuyệt đối, không chia sẻ", mappings: [{ criteria_id: "financial_transparency", score_delta: -0.8 }], meta_hint: "transparent_low" }
+                ]
+            }
+        ];
+    }
 }
 
 module.exports = new AIService();

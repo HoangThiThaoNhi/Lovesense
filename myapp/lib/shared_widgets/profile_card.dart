@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/user_model.dart';
 import '../../theme.dart';
 import '../core/utils/api_service.dart';
+import '../features/swipe/providers/swipe_provider.dart';
 import 'glass_container.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class ProfileCard extends StatelessWidget {
+class ProfileCard extends ConsumerWidget {
   final User user;
 
   const ProfileCard({super.key, required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ignoreDNA = ref.watch(swipeProvider).filter.ignoreDNA;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
@@ -175,20 +178,20 @@ class ProfileCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        if (user.isDNAMatch == true)
+                        if (user.isDNAMatch == true && !ignoreDNA)
                           _buildBadge(
                             'assets/images/new_double_heart_3d.png',
                             'Soulmate',
                             Colors.pinkAccent,
                           )
-                        else if ((user.matchScore ?? 0) > 0)
+                        else if ((user.matchScore ?? 0) > 0 && !ignoreDNA)
                           _buildBadge(
                             'assets/images/new_double_heart_3d.png',
                             'AI Match',
                             AppColors.primary,
                           ),
                         
-                        if (user.matchReason != null)
+                        if (user.matchReason != null && !ignoreDNA)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(

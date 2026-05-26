@@ -19,8 +19,11 @@ class AuthState {
 
   bool get isProfileComplete {
     if (currentUser == null) return false;
-    // Profile is complete if display_name has been set
-    return currentUser!.name.isNotEmpty;
+    // Profile is complete if basic info (name, age, photos) has been filled out
+    return currentUser!.name.isNotEmpty &&
+        currentUser!.name != 'Người dùng mới' &&
+        currentUser!.age > 0 &&
+        currentUser!.imageUrls.isNotEmpty;
   }
 
   AuthState copyWith({

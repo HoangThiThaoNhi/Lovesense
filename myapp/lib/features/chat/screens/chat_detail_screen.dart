@@ -27,6 +27,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _picker = ImagePicker();
+  bool _isAcceptedLocally = false;
 
   @override
   void initState() {
@@ -310,81 +311,207 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Status bar: Pending approval (Only show if I sent a message and they haven't replied yet)
-                if (messages.any((m) => m.senderId == currentUserId) && 
-                    !messages.any((m) => m.senderId == widget.user.id))
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.08),
-                      border: Border(
-                        bottom: BorderSide(color: Colors.black.withOpacity(0.05)),
+                // 1. Banner status if applicable
+                if (messages.isNotEmpty) ...[
+                  // Case A: I sent message(s), other user hasn't replied yet
+                  if (messages.any((m) => m.senderId == currentUserId) &&
+                      !messages.any((m) => m.senderId == widget.user.id))
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.08),
+                        border: Border(
+                          bottom: BorderSide(color: Colors.blue.withOpacity(0.15)),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Đang chờ đối phương phản hồi. Cuộc trò chuyện này đang nằm trong mục Đang chờ đối phương phản hồi. 💬",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue[800],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.info_outline, size: 14, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Tin nhắn của bạn đang chờ ${widget.user.name} phê duyệt",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 12, 
-                            color: Colors.black87, 
-                            fontWeight: FontWeight.w600,
-                          ),
+                  // Case B: Other user sent message(s), I haven't replied yet (and not accepted locally)
+                  if (!messages.any((m) => m.senderId == currentUserId) &&
+                      messages.any((m) => m.senderId == widget.user.id) &&
+                      !_isAcceptedLocally)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.08),
+                        border: Border(
+                          bottom: BorderSide(color: Colors.orange.withOpacity(0.15)),
                         ),
-                      ],
-                    ),
-                  ),
-                
-                // Input Area
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.add_circle, color: AppColors.primary),
-                          onPressed: _sendImage,
-                        ),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: TextField(
-                              controller: _controller,
-                              decoration: const InputDecoration(
-                                hintText: 'Nhập tin nhắn...',
-                                border: InputBorder.none,
-                                isDense: true,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Tin nhắn chờ từ ${widget.user.name}. Hãy phản hồi để chuyển cuộc trò chuyện sang hộp thư chính.",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange[900],
+                                fontWeight: FontWeight.w600,
                               ),
-                              onSubmitted: (_) => _sendMessage(),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: _sendMessage,
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: AppColors.primaryGradient,
+                        ],
+                      ),
+                    ),
+                ],
+
+                // 2. Input or Accept/Reject buttons
+                if (messages.isNotEmpty &&
+                    !messages.any((m) => m.senderId == currentUserId) &&
+                    messages.any((m) => m.senderId == widget.user.id) &&
+                    !_isAcceptedLocally)
+                  // Accept/Reject buttons section
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          // Reject / Unmatch Button
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Từ chối tin nhắn?'),
+                                    content: Text('Hủy ghép đôi và xóa toàn bộ cuộc trò chuyện với ${widget.user.name}?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Hủy'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Từ chối & Xóa', style: TextStyle(color: Colors.red)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  await ref.read(matchProvider.notifier).deleteMatch(widget.matchId);
+                                  if (mounted) {
+                                    ToastUtils.showModernToast(context, 'Đã xóa tin nhắn chờ');
+                                    context.pop();
+                                  }
+                                }
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              child: const Text('Từ chối', style: TextStyle(fontWeight: FontWeight.bold)),
                             ),
-                            child: const Icon(Icons.send, color: Colors.white, size: 20),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 16),
+                          // Accept Button
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: AppColors.primaryGradient,
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isAcceptedLocally = true;
+                                  });
+                                  ToastUtils.showModernToast(
+                                    context,
+                                    'Đã chấp nhận. Nhập tin nhắn để phản hồi.',
+                                    type: ToastType.success,
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Chấp nhận',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  // Standard Input Area
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.add_circle, color: AppColors.primary),
+                            onPressed: _sendImage,
+                          ),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: TextField(
+                                controller: _controller,
+                                decoration: const InputDecoration(
+                                  hintText: 'Nhập tin nhắn...',
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
+                                onSubmitted: (_) => _sendMessage(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: _sendMessage,
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: AppColors.primaryGradient,
+                              ),
+                              child: const Icon(Icons.send, color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

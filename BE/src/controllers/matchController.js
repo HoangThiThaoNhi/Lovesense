@@ -16,7 +16,9 @@ exports.getMatches = async (req, res) => {
                    msg.message_type as last_message_type,
                    msg.sender_id as last_sender_id,
                    msg.created_at as last_message_date,
-                   msg.is_read
+                   msg.is_read,
+                   (SELECT COUNT(*) FROM messages WHERE match_id = m.id AND sender_id = ?) as my_msg_count,
+                   (SELECT COUNT(*) FROM messages WHERE match_id = m.id AND sender_id = p.user_id) as other_msg_count
             FROM matches m
             JOIN profiles p ON (p.user_id = m.user1_id OR p.user_id = m.user2_id)
             LEFT JOIN (
@@ -31,7 +33,7 @@ exports.getMatches = async (req, res) => {
             WHERE (m.user1_id = ? OR m.user2_id = ?) AND p.user_id != ? AND m.status != 'rejected'
             ORDER BY COALESCE(msg.created_at, m.created_at) DESC
         `, {
-            replacements: [userId, userId, userId],
+            replacements: [userId, userId, userId, userId],
             type: QueryTypes.SELECT
         });
 

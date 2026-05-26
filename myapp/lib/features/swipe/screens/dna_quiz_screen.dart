@@ -22,6 +22,7 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
   int _currentIndex = 0;
   bool _isLoading = true;
   bool _isAnalyzing = false;
+  bool _isSubmitting = false;
   Map<String, dynamic>? _report;
 
   @override
@@ -49,6 +50,12 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
   }
 
   Future<void> _submitAnswer(String optionId) async {
+    if (_isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
     try {
       final token = ref.read(authProvider).token;
       final response = await ApiService.post('/quiz/submit', {'optionId': optionId}, token: token);
@@ -68,6 +75,16 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
         }
       }
 
+      // Nối tiếp các câu hỏi đào sâu từ AI nếu có
+      if (response != null && response['next_questions'] != null) {
+        final List<dynamic> nextQ = response['next_questions'] as List;
+        if (nextQ.isNotEmpty) {
+          setState(() {
+            _questions.addAll(nextQ);
+          });
+        }
+      }
+
       if (_currentIndex < _questions.length - 1) {
         setState(() {
           _currentIndex++;
@@ -77,6 +94,12 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
       }
     } catch (e) {
       ToastUtils.showModernToast(context, 'Lỗi gửi đáp án: $e', type: ToastType.error);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -201,66 +224,102 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
                 const Spacer(),
                 
                 // Question Card (Glassmorphism)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(40),
-                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 30,
-                        offset: const Offset(0, 15),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // AI Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.auto_awesome, color: Colors.white, size: 14),
-                            SizedBox(width: 6),
-                            Text(
-                              'AI DNA INSIGHT',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
-                                letterSpacing: 1,
+                Stack(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(40),
+                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
+                          )
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // AI Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.auto_awesome, color: Colors.white, size: 14),
+                                SizedBox(width: 6),
+                                Text(
+                                  'AI DNA INSIGHT',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            question['content'],
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 36),
+                          ...options.map((opt) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _buildOptionButton(opt),
+                          )),
+                        ],
+                      ),
+                    ),
+                    if (_isSubmitting)
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(40),
+                          child: Container(
+                            color: Colors.black.withOpacity(0.4),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const CircularProgressIndicator(color: Colors.white),
+                                  const SizedBox(height: 16),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                                    child: Text(
+                                      _currentIndex == 6 
+                                        ? '✨ Lovesense AI đang phân tích và cá nhân hóa câu hỏi tiếp theo...'
+                                        : 'Đang gửi đáp án...',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      Text(
-                        question['content'],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          height: 1.4,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 36),
-                      ...options.map((opt) => Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: _buildOptionButton(opt),
-                      )),
-                    ],
-                  ),
+                  ],
                 ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack).fadeIn(),
                 
                 const Spacer(flex: 2),
@@ -299,7 +358,7 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () => _submitAnswer(opt['id']),
+        onPressed: _isSubmitting ? null : () => _submitAnswer(opt['id']),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF6366F1),
@@ -522,10 +581,14 @@ class _DNAQuizScreenState extends ConsumerState<DNAQuizScreen> {
                   ),
                   child: ElevatedButton(
                     onPressed: () async {
+                      // Fetch the latest profile data to update user's DNA scores locally
+                      await ref.read(authProvider.notifier).fetchProfile();
+
                       // 1. Auto-enable DNA Mode (set ignoreDNA to false)
                       final currentFilter = ref.read(swipeProvider).filter;
                       ref.read(swipeProvider.notifier).updateFilters(
                         currentFilter.copyWith(ignoreDNA: false),
+                        fetch: false,
                       );
 
                       // 2. Perform a reset and hard refresh to show new DNA-based results (including previously swiped users)

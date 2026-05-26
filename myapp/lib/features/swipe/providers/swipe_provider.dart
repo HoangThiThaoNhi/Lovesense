@@ -17,7 +17,7 @@ class DiscoveryFilter {
     this.maxAge = 100,
     this.maxDistance = 20000,
     this.useInterests = false,
-    this.ignoreDNA = false,
+    this.ignoreDNA = true,
   });
 
   DiscoveryFilter copyWith({
@@ -101,6 +101,25 @@ class SwipeNotifier extends StateNotifier<SwipeState> {
   final Ref _ref;
 
   SwipeNotifier(this._ref) : super(SwipeState()) {
+    _initFilter();
+  }
+
+  void _initFilter() {
+    final user = _ref.read(authProvider).currentUser;
+    final hasDna = user != null && (
+      user.ambitionScore > 0 ||
+      user.personalityScore > 0 ||
+      user.careerScore > 0 ||
+      user.coreValuesScore > 0 ||
+      user.interestsScore > 0 ||
+      user.lifestyleScore > 0 ||
+      user.familyOrientationScore > 0
+    );
+    state = state.copyWith(
+      filter: DiscoveryFilter(
+        ignoreDNA: !hasDna,
+      ),
+    );
     fetchDiscovery();
   }
 
@@ -167,13 +186,29 @@ class SwipeNotifier extends StateNotifier<SwipeState> {
     }
   }
 
-  void updateFilters(DiscoveryFilter filter) {
+  void updateFilters(DiscoveryFilter filter, {bool fetch = true}) {
     state = state.copyWith(filter: filter);
-    fetchDiscovery();
+    if (fetch) {
+      fetchDiscovery();
+    }
   }
 
   void resetFilters() {
-    state = state.copyWith(filter: DiscoveryFilter());
+    final user = _ref.read(authProvider).currentUser;
+    final hasDna = user != null && (
+      user.ambitionScore > 0 ||
+      user.personalityScore > 0 ||
+      user.careerScore > 0 ||
+      user.coreValuesScore > 0 ||
+      user.interestsScore > 0 ||
+      user.lifestyleScore > 0 ||
+      user.familyOrientationScore > 0
+    );
+    state = state.copyWith(
+      filter: DiscoveryFilter(
+        ignoreDNA: !hasDna,
+      ),
+    );
     fetchDiscovery();
   }
 
@@ -300,7 +335,7 @@ class SwipeNotifier extends StateNotifier<SwipeState> {
     try {
       final token = _ref.read(authProvider).token;
       await ApiService.post('/swipes/reset', {}, token: token);
-      state = state.copyWith(consecutiveNopeCount: 0, showAISuggestion: false);
+      state = state.copyWith(consecutiveNopeCount: 0, showAISuggestion: false, isLoading: false);
       await fetchDiscovery();
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());

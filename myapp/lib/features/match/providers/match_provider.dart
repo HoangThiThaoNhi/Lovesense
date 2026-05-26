@@ -103,6 +103,8 @@ class MatchNotifier extends StateNotifier<MatchState> {
           status: map['status']?.toString() ?? 'accepted',
           user1Id: map['user1_id']?.toString() ?? '',
           user2Id: map['user2_id']?.toString() ?? '',
+          myMessageCount: int.tryParse(map['my_msg_count']?.toString() ?? '') ?? 0,
+          otherMessageCount: int.tryParse(map['other_msg_count']?.toString() ?? '') ?? 0,
         );
       }).whereType<ChatMatch>().toList();
 
@@ -154,24 +156,8 @@ class MatchNotifier extends StateNotifier<MatchState> {
     final token = _ref.read(authProvider).token;
     final updatedMatches = state.matches.map((m) {
       if (m.id == matchId && m.lastMessage != null) {
-        return ChatMatch(
-          id: m.id,
-          userId: m.userId,
-          name: m.name,
-          imageUrl: m.imageUrl,
-          matchedAt: m.matchedAt,
-          lastMessage: Message(
-            id: m.lastMessage!.id,
-            matchId: m.lastMessage!.matchId,
-            senderId: m.lastMessage!.senderId,
-            content: m.lastMessage!.content,
-            type: m.lastMessage!.type,
-            timestamp: m.lastMessage!.timestamp,
-            isRead: true,
-          ),
-          status: m.status,
-          user1Id: m.user1Id,
-          user2Id: m.user2Id,
+        return m.copyWith(
+          lastMessage: m.lastMessage!.copyWith(isRead: true),
         );
       }
       return m;
@@ -202,17 +188,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
     final token = _ref.read(authProvider).token;
     final updatedMatches = state.matches.map((m) {
       if (m.id == matchId) {
-        return ChatMatch(
-          id: m.id,
-          userId: m.userId,
-          name: m.name,
-          imageUrl: m.imageUrl,
-          matchedAt: m.matchedAt,
-          lastMessage: m.lastMessage,
-          status: 'accepted',
-          user1Id: m.user1Id,
-          user2Id: m.user2Id,
-        );
+        return m.copyWith(status: 'accepted');
       }
       return m;
     }).toList();
